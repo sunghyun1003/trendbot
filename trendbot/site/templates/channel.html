@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}ㄷㅅㅂㄱ · {{ src.name }}{% endblock %}
+{% set TABS = [('best','종합'),('views','조회'),('comments','댓글'),('likes','좋아요')] %}
+{% block body %}
+<div class="feed-col single">
+  <section class="hero ch-hero">
+    <span class="ch-big">{{ src.name|short }}</span>
+    <div>
+      <div class="hero-d">{{ pod_label }}</div>
+      <h1 class="ch-name">{{ src.name }}</h1>
+      <a class="ch-link" href="{{ src.url }}" target="_blank" rel="noopener">원래 게시판 {{ icon('out') }}</a>
+    </div>
+  </section>
+  <div class="seg" id="tabs">{% for k, label in TABS %}<button class="{{ 'on' if loop.first }}" data-k="{{ k }}">{{ label }} 1위</button>{% endfor %}</div>
+  {% for k, label in TABS %}
+  <ul class="health ch-list {{ 'on' if loop.first }}" data-k="{{ k }}">
+    {% for r in rows %}{% set p = r[k] %}
+    <li>{% if p %}
+      <span class="ch-date">{{ r.date[5:]|replace('-','.') }}</span>
+      <a class="ch-t2" href="{{ r.href if (k == 'best' and r.href) else p.url }}" {% if not (k == 'best' and r.href) %}target="_blank" rel="noopener"{% endif %}>{{ p.title }}</a>
+      <span class="ch-n">{% if k == 'comments' %}{{ icon('chat') }}{{ p.comments|num }}{% elif k == 'likes' %}{{ icon('thumb') }}{{ p.likes|num }}{% else %}{{ icon('eye') }}{{ p.views|num }}{% endif %}{% if k == 'best' and r.strength in ('강함','역대급') %}<i class="ch-s">{{ r.strength }}</i>{% endif %}</span>
+    {% else %}<span class="ch-date">{{ r.date[5:]|replace('-','.') }}</span><span class="ch-t2" style="color:var(--t3)">기록 없음</span>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% endfor %}
+  {% if not rows %}<div class="empty"><b>아직 기록이 없어요</b>수집이 시작되면 매일 쌓여요</div>{% endif %}
+</div>
+{% endblock %}
+{% block script %}
+<script>
+document.getElementById('tabs').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#tabs button,.ch-list').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); document.querySelector(`.ch-list[data-k="${b.dataset.k}"]`).classList.add('on');});
+</script>
+{% endblock %}

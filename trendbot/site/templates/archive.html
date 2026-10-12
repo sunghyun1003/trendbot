@@ -12,6 +12,8 @@
     </div>
   </section>
 
+  <div class="chan-row">{% for c in channels %}<a href="{{ root }}channel/{{ c.id }}.html"><span>{{ c.name|short }}</span>{{ c.name|short_label }}</a>{% endfor %}</div>
+
   <div class="searchbar">
     {{ icon('search') }}<input id="q" type="search" placeholder="검색" aria-label="검색">
     <select id="sort" aria-label="정렬">

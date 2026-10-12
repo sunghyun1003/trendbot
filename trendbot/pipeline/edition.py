@@ -124,6 +124,22 @@ def _card(c: Candidate, subs: list[Candidate], cfg: dict, fetch_context: bool) -
     }
 
 
+def channel_tops(posts: list[dict], cfg: dict) -> dict[str, dict]:
+    """채널마다 조회·댓글·좋아요 각각의 1위 (채널 페이지용, 제목·링크·수치만)."""
+    out: dict[str, dict] = {}
+    for src in cfg["sources"]:
+        mine = [p for p in posts if p["source_id"] == src["id"]]
+        if not mine:
+            continue
+        tops = {}
+        for metric in ("views", "comments", "likes"):
+            best = max(mine, key=lambda p: p.get(metric) or 0)
+            if best.get(metric):
+                tops[metric] = {k: best.get(k) for k in ("title", "url", "views", "comments", "likes")}
+        out[src["id"]] = tops
+    return out
+
+
 def build_edition(db: sqlite3.Connection, cfg: dict, date: str | None = None, use_ai: bool = True,
                   fetch_context: bool = True, fetch_media: bool = True) -> dict:
     now = datetime.now().astimezone()
@@ -201,7 +217,7 @@ def build_edition(db: sqlite3.Connection, cfg: dict, date: str | None = None, us
         "date": date, "generated_at": now_iso(), "cards": final,
         "overflow": [{"id": c["id"], "headline": c["headline"], "evidence": c["evidence_line"]} for c in overflow[: g["overflow_lines"]]],
         "excluded": [{"id": c["id"], "headline": c["headline"], "reason": c["exclude"]} for c in excluded],
-        "champions": champs, "avg28": avg, "mood": mood,
+        "champions": champs, "channel_tops": channel_tops(posts, cfg), "avg28": avg, "mood": mood,
         "health": {"total": len(enabled), "ok": len(enabled) - len(broken), "broken": broken},
         "ai": {"used": bool(results), "model": editor.MODEL if results else None, "note": ai_error},
         "sample": False,

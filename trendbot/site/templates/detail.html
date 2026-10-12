@@ -17,7 +17,7 @@
     <article class="orig {{ 'on' if loop.first }}" data-i="{{ loop.index0 }}">
       <header class="o-h">
         <span class="o-src">{{ p.source_name|short }}</span>
-        <div class="o-who"><b>{{ p.source_name }}</b>
+        <div class="o-who">{% if p.source_id and p.source_id != 'youtube' %}<a href="{{ root }}channel/{{ p.source_id }}.html"><b>{{ p.source_name }} ›</b></a>{% else %}<b>{{ p.source_name }}</b>{% endif %}
           <span class="nums">{% if p.views %}<span>{{ icon('eye') }}{{ p.views|num }}</span>{% endif %}{% if p.likes %}<span>{{ icon('thumb') }}{{ p.likes|num }}</span>{% endif %}{% if p.comments %}<span>{{ icon('chat') }}{{ p.comments|num }}</span>{% endif %}</span>
         </div>
       </header>

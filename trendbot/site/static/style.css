@@ -405,3 +405,22 @@ svg { display: block; flex: none; }
 .o-txt { margin-top: 12px; }
 .o-txt summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--t3); list-style: none; }
 .o-txt summary::-webkit-details-marker { display: none; }
+
+/* 채널 페이지 */
+.ch-hero { display: flex; align-items: center; gap: 16px; }
+.ch-big { width: 64px; height: 64px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow); display: grid; place-items: center; font-weight: 800; font-size: 18px; letter-spacing: -0.04em; flex: none; }
+.ch-name { margin: 2px 0 4px; font-size: 26px; font-weight: 800; letter-spacing: -0.035em; }
+.ch-link { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 600; color: var(--blue); }
+.ch-link svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.ch-list { display: none; margin-top: 12px; }
+.ch-list.on { display: block; }
+.ch-list li { gap: 12px; }
+.ch-date { flex: none; width: 40px; font-size: 13px; font-weight: 600; color: var(--t3); font-variant-numeric: tabular-nums; }
+.ch-t2 { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ch-n { flex: none; display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; color: var(--t3); font-variant-numeric: tabular-nums; }
+.ch-n svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.ch-n .ch-s { margin-left: 6px; }
+.chan-row { display: flex; gap: 10px; overflow-x: auto; margin: 4px -16px 10px; padding: 2px 16px 8px; scrollbar-width: none; }
+.chan-row::-webkit-scrollbar { display: none; }
+.chan-row a { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 56px; font-size: 11px; color: var(--t2); }
+.chan-row a span { width: 48px; height: 48px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow); display: grid; place-items: center; font-weight: 800; font-size: 13px; letter-spacing: -0.04em; color: var(--t1); }

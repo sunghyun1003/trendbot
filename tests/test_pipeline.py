@@ -86,3 +86,12 @@ def test_board_urls_with_query_are_not_merged():
     b = link_key("https://www.ppomppu.co.kr/zboard/zboard.php?id=freeboard&no=2&page=3")
     assert a != b
     assert link_key("https://youtu.be/abcdefghijk") == link_key("https://www.youtube.com/watch?v=abcdefghijk&t=3")
+
+
+def test_channel_pages_built(tmp_path):
+    from trendbot.sample import sample_editions
+    from trendbot.site.build import build
+    out = build(sample_editions(), [], tmp_path / "site")
+    page = (out / "channel" / "ppomppu_hot.html").read_text(encoding="utf-8")
+    assert "뽐뿌 HOT" in page and "조회 1위" in page and "러닝화" in page
+    assert 'href="channel/ppomppu_hot.html"' in (out / "archive.html").read_text(encoding="utf-8")

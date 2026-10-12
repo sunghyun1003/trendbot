@@ -6,6 +6,7 @@
 
 - 설계 문서: [docs/trend-archive-plan.md](docs/trend-archive-plan.md)
 - 집 PC 설치: [docs/setup-home-pc.md](docs/setup-home-pc.md)
+- 키 발급: [docs/keys-guide.md](docs/keys-guide.md)
 
 ## 구조
 
@@ -34,6 +35,8 @@ python -m trendbot probe        # 집 PC 첫 점검
 python -m trendbot snapshot     # 1회 수집 (--naver: 네이버 카페 포함)
 python -m trendbot daily        # 오늘의 판 생성 + 사이트 배포 (--no-ai, --no-deploy)
 python -m trendbot naver-login  # 네이버 직접 로그인 창
+python -m trendbot pull-feedback # 팀원 피드백 가져오기 (daily에서 자동)
+python -m trendbot doctor       # 설치·키·접속 한 번에 점검
 python -m pytest                # 테스트
 ```
 

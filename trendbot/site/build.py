@@ -10,7 +10,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from trendbot.config import DATA_DIR, ROOT
+from trendbot.config import DATA_DIR, ROOT, load_config
 
 HERE = Path(__file__).parent
 OUT = ROOT / "public"
@@ -119,12 +119,31 @@ def build(editions: list[dict], health: list[dict], out: Path = OUT) -> Path:
     rows_json = json.dumps(rows, ensure_ascii=False).replace("</", "<\\/")
     (out / "archive.html").write_text(
         env.get_template("archive.html").render(editions=editions, rows=rows, rows_json=rows_json, fields=fields,
+                                                channels=[s for s in load_config()["sources"] if s.get("enabled", True) and s.get("champion")],
                                                 root="", page="archive"),
         encoding="utf-8")
     (out / "status.html").write_text(
         env.get_template("status.html").render(e=editions[0] if editions else None, sources=health, root="",
                                                page="status"),
         encoding="utf-8")
+    # 채널 페이지: 날짜별 종합 1위 기록 + 조회·댓글·좋아요별 1위
+    cfg = load_config()
+    channels = [src for src in cfg["sources"] if src.get("enabled", True) and src.get("champion")]
+    (out / "channel").mkdir(exist_ok=True)
+    ch_tpl = env.get_template("channel.html")
+    for src in channels:
+        rows = []
+        for e in editions:
+            ch = next((c for c in e["champions"] if c["source_id"] == src["id"]), None)
+            tops = (e.get("channel_tops") or {}).get(src["id"], {})
+            best = ch["post"] if ch and ch.get("post") else None
+            if not best and not tops:
+                continue
+            rows.append({"date": e["date"], "best": best, "href": ("../" + ch["href"]) if best and ch.get("href") else None,
+                         "strength": ch.get("strength") if ch else None, **tops})
+        (out / "channel" / f"{src['id']}.html").write_text(
+            ch_tpl.render(src=src, rows=rows, pod_label=cfg["pods"][src["pod"]]["label"], root="../", page="archive"),
+            encoding="utf-8")
     (out / "robots.txt").write_text("User-agent: *\nDisallow: /\n", encoding="utf-8")
     (out / "_headers").write_text("/*\n  X-Robots-Tag: noindex, nofollow\n  Referrer-Policy: no-referrer\n", encoding="utf-8")
     if FUNCTIONS_SRC.exists():

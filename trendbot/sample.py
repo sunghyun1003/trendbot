@@ -97,6 +97,8 @@ def sample_editions() -> list[dict]:
         "health": {"total": 12, "ok": 11, "broken": [{"name": "에펨코리아 포텐", "message": "봇 차단"}]},
         "ai": {"used": True, "model": "claude-opus-5-5", "note": None}, "sample": True,
     }
+    today["channel_tops"] = {c["source_id"]: {"views": c["post"], "comments": c["post"], "likes": c["post"]}
+                             for c in champs if c.get("post") and c["source_id"] != "youtube"}
     yesterday = {**today, "date": "2026-10-12", "generated_at": "2026-10-12T07:30:00+09:00",
                  "cards": copy.deepcopy(cards[1:3]), "mood": "조용한 날", "overflow": [], "excluded": [],
                  "champions": [{**copy.deepcopy(c), "in_card": None} for c in champs]}
