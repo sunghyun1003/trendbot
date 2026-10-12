@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+data/*.db
+data/browser-profile/
+data/raw/
+public/
+.env
+.pytest_cache/
+node_modules/

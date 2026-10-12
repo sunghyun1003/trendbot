@@ -1,0 +1,245 @@
+# 트렌드 아카이브 소스 설정
+# - 이 파일만 고치면 게시판을 켜고 끄거나, 채널 1위 목록을 바꿀 수 있습니다.
+# - selectors(선택자)는 "웹페이지에서 어느 부분이 제목/조회수인지" 알려주는 주소입니다.
+#   verified: false 인 소스는 실제 화면으로 아직 확인하지 않은 것입니다.
+#   집 PC에서 `python -m trendbot probe` 를 돌리면 확인 결과가 나옵니다.
+
+pods:
+  P1: {label: "남 10~20대", gender: M, age: young}
+  P2: {label: "남 20~30대 취미", gender: M, age: mid}
+  P3: {label: "남 30~50대", gender: M, age: old}
+  P4: {label: "여 10~20대", gender: F, age: young}
+  P5: {label: "여 20~30대", gender: F, age: mid}
+  P6: {label: "여 30~50대", gender: F, age: old}
+  P7: {label: "영상(유튜브)", gender: null, age: null, platform: true}
+  P8: {label: "SNS", gender: null, age: null, platform: true}
+
+# 판정 기준 (보정 기간에 조정)
+grading:
+  window_hours: 24            # 새로 진입한 이야기를 찾는 기간
+  max_cards: 15               # 필수 카드 최대 장수 (모든 등급 합산)
+  field_caps: {정치: 2, 사회/사건: 3}
+  overflow_lines: 3           # 상한 초과분을 한 줄로 보여 줄 개수
+  a_min_pods: 3               # A 전국구: 커뮤니티 포드 최소 개수 (+ 남녀 교차)
+  a_alt_min_pods: 4           # 또는 포드 4개 + 검색·뉴스 신호
+  b_min_pods: 2               # B 급부상
+  m_max_per_day: 2            # M 단일채널 폭발
+  m_rank_top: 1               # 보정 전: 채널 1위이면서
+  m_min_views: 100000         # 조회 하한 (보정 기간에 채널별로 조정)
+  s_traffic_min: 10000        # 구글 트렌드 S 신호 하한
+  s_traffic_strong: 100000    # 강한 S
+  update_new_pods: 2          # 어제 나온 이야기를 '업데이트'로 다시 띄우는 새 포드 수
+  champion_strong_pct: 0.70   # 채널 1위 '강함' 기준 (최근 1위들 중 백분위)
+  champion_record_pct: 0.95   # '역대급'
+
+# 일상 키워드 (S 신호·묶기에서 제외)
+routine_keywords: [날씨, 로또, 환율, 코스피, 코스닥, 미세먼지, 주가, 운세]
+
+# 별칭 사전: 커뮤니티마다 다르게 부르는 이름을 하나로 묶음
+aliases:
+  흑백요리사: [흑요, 흑백 요리사]
+
+sources:
+  - id: dcbest
+    name: 디시 실시간 베스트
+    pod: P1
+    champion: true
+    enabled: true
+    verified: false
+    url: https://gall.dcinside.com/board/lists/?id=dcbest
+    row: "tr.ub-content"
+    fields:
+      title: "td.gall_tit a:not(.reply_numbox)"
+      link: "td.gall_tit a:not(.reply_numbox)@href"
+      views: "td.gall_count"
+      likes: "td.gall_recommend"
+      comments: "td.gall_tit .reply_num"
+      posted: "td.gall_date@title"
+
+  - id: humoruniv
+    name: 웃긴대학 오늘의 베스트
+    pod: P1
+    champion: true
+    enabled: true
+    verified: false
+    url: https://web.humoruniv.com/board/humor/list.html?table=pds&st=day
+    row: "#post_list tr"
+    fields:
+      title: "td.li_sbj a span[id^=title]"
+      link: "td.li_sbj a@href"
+      views: "td.li_und:nth-of-type(4)"
+      likes: "td.li_und span.o"
+      comments: "td.li_sbj span.list_comment_num"
+
+  - id: fmkorea
+    name: 에펨코리아 포텐
+    pod: P1
+    champion: false
+    enabled: false          # 봇 차단이 강함. 집 PC 점검에서 막히지 않으면 켭니다.
+    verified: false
+    url: https://www.fmkorea.com/best
+    row: "li.li"
+    fields:
+      title: "h3.title a"
+      link: "h3.title a@href"
+      likes: "a.pc_voted_count span.count"
+      comments: "h3.title span.comment_count"
+
+  - id: ruliweb
+    name: 루리웹 베스트
+    pod: P2
+    champion: true
+    enabled: true
+    verified: false
+    url: https://bbs.ruliweb.com/best/humor_only
+    row: "tr.table_body:not(.notice)"
+    fields:
+      title: "td.subject a.deco"
+      link: "td.subject a.deco@href"
+      views: "td.hit"
+      likes: "td.recomd"
+      comments: "td.subject span.num_reply"
+
+  - id: dieselmania
+    name: 디젤매니아
+    pod: P2
+    champion: true
+    enabled: true
+    verified: false
+    kind: naver_cafe        # 집 PC의 로그인된 브라우저로 읽음 (자동 로그인 없음)
+    cafe_url: https://cafe.naver.com/dieselmania
+    url: https://cafe.naver.com/dieselmania
+
+  - id: ppomppu_hot
+    name: 뽐뿌 HOT
+    pod: P3
+    champion: true
+    enabled: true
+    verified: false
+    url: https://www.ppomppu.co.kr/hot.php
+    row: "tr.baseList, tr.line"
+    fields:
+      title: "a.baseList-title, a.title"
+      link: "a.baseList-title@href, a.title@href"
+      views: "td.baseList-views, td.board_date + td"
+      likes: "td.baseList-rec"
+      comments: "span.baseList-c, span.list_comment2"
+
+  - id: ppomppu_deal
+    name: 뽐뿌 핫딜
+    pod: P3
+    champion: true
+    enabled: true
+    verified: false
+    field_hint: 쇼핑/딜
+    url: https://www.ppomppu.co.kr/zboard/zboard.php?id=ppomppu&hotlist_flag=999
+    row: "tr.baseList"
+    fields:
+      title: "a.baseList-title"
+      link: "a.baseList-title@href"
+      views: "td.baseList-views"
+      likes: "td.baseList-rec"
+      comments: "span.baseList-c"
+
+  - id: clien
+    name: 클리앙 추천글
+    pod: P3
+    champion: true
+    enabled: true
+    verified: false
+    url: https://www.clien.net/service/recommend
+    row: "div.list_item.symph_row"
+    fields:
+      title: "span.subject_fixed"
+      link: "a.list_subject@href"
+      views: "span.hit"
+      likes: "div.list_symph span"
+      comments: "a.list_reply span.rSymph05"
+
+  - id: bobaedream
+    name: 보배드림 베스트
+    pod: P3
+    champion: true
+    enabled: true
+    verified: false
+    field_hint: 자동차
+    url: https://www.bobaedream.co.kr/list?code=best
+    row: "table#boardlist tbody tr"
+    fields:
+      title: "a.bsubject"
+      link: "a.bsubject@href"
+      views: "td.count"
+      likes: "td.recomm"
+      comments: "strong.totreply"
+
+  - id: instiz
+    name: 인스티즈 이슈
+    pod: P4
+    champion: true
+    enabled: true
+    verified: false
+    url: https://www.instiz.net/pt?srt=3&srd=1
+    row: "table#mainboard tr#detour"
+    fields:
+      title: "td.listsubject a"
+      link: "td.listsubject a@href"
+      views: "td.listno:nth-last-of-type(2)"
+      likes: "td.listno:last-of-type"
+      comments: "span.cmt2"
+
+  - id: theqoo
+    name: 더쿠 HOT
+    pod: P5
+    champion: true
+    enabled: true
+    verified: false
+    url: https://theqoo.net/hot
+    row: "table.theqoo_board_table tbody tr:not(.notice)"
+    fields:
+      title: "td.title a:not(.replyNum)"
+      link: "td.title a:not(.replyNum)@href"
+      views: "td.m_no"
+      comments: "a.replyNum"
+
+  - id: natepann
+    name: 네이트판 톡커들의 선택
+    pod: P6
+    champion: true
+    enabled: true
+    verified: false
+    url: https://pann.nate.com/talk/ranking/d
+    row: "ul.post_wrap > li"
+    fields:
+      title: "dt h2 a"
+      link: "dt h2 a@href"
+      views: "span.count"
+      likes: "span.rcm"
+      comments: "span.reply-num"
+
+  - id: cook82
+    name: 82쿡 자유게시판
+    pod: P6
+    champion: true
+    enabled: true
+    verified: false
+    url: https://www.82cook.com/entiz/enti.php?bn=15
+    row: "#bbs table tbody tr:not(.noticeList)"
+    fields:
+      title: "td.title a"
+      link: "td.title a@href"
+      views: "td.numbers:last-of-type"
+      comments: "td.title em"
+
+# 검색·뉴스·영상 신호
+signals:
+  google_trends:
+    enabled: true
+    url: https://trends.google.com/trending/rss?geo=KR
+  google_news:
+    enabled: true
+    url: https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko
+  youtube:
+    enabled: true             # YOUTUBE_API_KEY 가 있을 때만 동작
+    champion: true
+    search_pages: 2           # 하루 검색 페이지 수 (1페이지 = 100 유닛)
+    shorts_max_seconds: 180

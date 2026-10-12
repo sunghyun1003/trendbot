@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}{{ e.date_label }} · 트렌드 아카이브{% endblock %}
+{% block body %}
+<header class="day">
+  <h1>{{ e.date_label }}</h1>
+  <div class="meta">
+    <span>오늘의 필수 <b>{{ e.cards|length }}</b>건</span>
+    {% if e.avg28 %}<span>평소 {{ e.avg28 }}건 (최근 28일 평균)</span>{% endif %}
+    <span>소스 {{ e.health.ok }}/{{ e.health.total }} 정상</span>
+    <span>{{ e.generated_at[11:16] }} 발행</span>
+  </div>
+  {% if e.sample %}<div class="banner sample">견본 화면입니다. 실제 수집 데이터가 아니라 화면 확인용 가짜 데이터입니다.</div>{% endif %}
+  {% if e.mood and e.mood != '평소 수준' %}<div class="banner mood">{{ e.mood }}{% if e.mood == '조용한 날' %} · 빈자리를 채우지 않았습니다{% endif %}</div>{% endif %}
+  {% if e.health.broken %}<div class="banner broken">수집 안 된 소스: {% for b in e.health.broken %}{{ b.name }}{% if not loop.last %}, {% endif %}{% endfor %} — <a href="{{ root }}status.html">상태 보기</a></div>{% endif %}
+  {% if e.ai.note %}<div class="banner broken">{{ e.ai.note }}</div>{% endif %}
+</header>
+
+{% if not e.cards %}<p class="empty">오늘은 기준을 넘은 이야기가 없습니다.</p>{% endif %}
+{% for c in e.cards %}
+<article class="card" id="c-{{ c.id }}">
+  <div class="no">{{ loop.index }}</div>
+  <div>
+    <div class="badges">
+      {% for b in c.badges %}<span class="badge {% if b in ['전국구','급부상','단일채널 폭발'] %}g-{{ c.grade }}{% elif b in ['NEW','업데이트'] %}new{% endif %}">{{ b }}</span>{% endfor %}
+      {% if c.caution %}<span class="badge caution">주의</span>{% endif %}
+      {% if c.context == '제목만' %}<span class="badge ctx">맥락 확인 필요</span>{% endif %}
+    </div>
+    <h3>{{ c.headline }}</h3>
+    <p class="why">{{ c.why }}</p>
+    <div class="tags">{{ c.field }}{% for a in c.attributes if a != c.field %} · {{ a }}{% endfor %} · {{ c.age }}{% if c.marketer != '없음' %} · <span class="mk">{{ c.marketer }}</span>{% endif %}</div>
+    {% if c.path|length > 1 %}<div class="path">경로: {% for p in c.path %}<b>{{ p.name }}</b> {{ p.at }}{% if not loop.last %} → {% endif %}{% endfor %}</div>{% endif %}
+    <ul class="posts">
+      {% for p in c.posts[:3] %}
+      <li><span class="src">{{ p.source_name }}</span><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a>
+        <span class="num">{% if p.views %}조회 {{ p.views|num }}{% endif %}{% if p.likes %} · 추천 {{ p.likes|num }}{% endif %}{% if p.comments %} · 댓글 {{ p.comments|num }}{% endif %}</span></li>
+      {% endfor %}
+      {% for v in c.videos[:1] %}
+      <li><span class="src">유튜브</span><a href="{{ v.url }}" target="_blank" rel="noopener">{{ v.title }}</a><span class="num">조회 {{ v.views|num }}{% if v.shorts %} · 쇼츠{% endif %}</span></li>
+      {% endfor %}
+    </ul>
+    {% if c.subs %}<div class="subs">{% for s in c.subs %}<div>↳ {{ s.title }}</div>{% endfor %}</div>{% endif %}
+    <div class="fb" data-card="{{ c.id }}">
+      <button data-act="keep">유지</button>
+      <button data-act="drop">제외</button>
+      <span class="reasons">
+        <button data-reason="이미 앎">이미 앎</button><button data-reason="너무 마이너">너무 마이너</button>
+        <button data-reason="중복">중복</button><button data-reason="마케팅 무관">마케팅 무관</button>
+      </span>
+      <button data-act="star">★</button>
+    </div>
+  </div>
+</article>
+{% endfor %}
+
+{% if e.overflow %}
+<h2 class="sec">그 외 (상한 초과)</h2>
+<div class="lines">{% for o in e.overflow %}<div class="row"><span class="name">그 외</span><span class="title">{{ o.headline }}</span><span class="num">{{ o.evidence }}</span></div>{% endfor %}</div>
+{% endif %}
+
+<h2 class="sec">채널 1위</h2>
+<div class="lines">
+{% for ch in e.champions %}
+  <div class="row">
+    <span class="name">{{ ch.name }}</span>
+    {% if not ch.post %}<span class="title" style="color:var(--muted)">새 1위 없음</span><span></span>
+    {% elif ch.in_card and ch.in_card <= e.cards|length %}<span class="title"><a href="#c-{{ e.cards[ch.in_card-1].id }}">↗ 카드 {{ ch.in_card }}</a> {{ ch.post.title }}</span><span></span>
+    {% else %}
+    <span class="title"><a href="{{ ch.post.url }}" target="_blank" rel="noopener">{{ ch.post.title }}</a>
+      <span class="num">{% if ch.post.views %}조회 {{ ch.post.views|num }}{% endif %}{% if ch.post.comments %} · 댓글 {{ ch.post.comments|num }}{% endif %}{% if ch.post.likes %} · 좋아요 {{ ch.post.likes|num }}{% endif %}</span></span>
+    <span class="strength s-{{ (ch.strength or '')[:2] }}">{{ ch.strength or '' }}</span>
+    {% endif %}
+  </div>
+{% endfor %}
+</div>
+
+{% if e.excluded %}
+<details class="fold"><summary>AI가 뺀 것 ({{ e.excluded|length }})</summary>
+  <div class="lines" style="margin-top:8px">{% for x in e.excluded %}<div class="row"><span class="name">{{ x.reason }}</span><span class="title">{{ x.headline }}</span><span><button class="restore" data-card="{{ x.id }}" style="font:inherit;font-size:12px;background:none;border:1px solid var(--line);border-radius:6px;color:var(--muted);cursor:pointer">되살리기</button></span></div>{% endfor %}</div>
+</details>
+{% endif %}
+
+<form class="missed" id="missed">
+  <input name="q" placeholder="놓친 것 추가: 링크나 키워드를 입력하세요" autocomplete="off">
+  <button type="submit">보내기</button>
+</form>
+{% endblock %}
+{% block script %}
+<script>
+const DATE = "{{ e.date }}";
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
+async function send(body){
+  try{const r=await fetch('{{ root }}api/feedback',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({date:DATE,...body})});
+    if(!r.ok) throw 0; toast('저장했습니다');}
+  catch(e){toast('미리보기에서는 저장되지 않습니다');}
+}
+const KEY='fb-'+DATE; let st={}; try{st=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
+document.querySelectorAll('.fb').forEach(fb=>{
+  const id=fb.dataset.card, s=st[id]||{};
+  const mark=()=>{fb.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+    const cur=st[id]||{};
+    if(cur.act) fb.querySelector(`[data-act="${cur.act}"]`)?.classList.add('on');
+    if(cur.reason) fb.querySelector(`[data-reason="${cur.reason}"]`)?.classList.add('on');
+    if(cur.star) fb.querySelector('[data-act="star"]').classList.add('on');
+    fb.classList.toggle('dropping',cur.act==='drop');};
+  mark();
+  fb.addEventListener('click',ev=>{const b=ev.target.closest('button'); if(!b) return;
+    const cur=st[id]||(st[id]={});
+    if(b.dataset.act==='star'){cur.star=!cur.star; send({card:id,action:cur.star?'star':'unstar'});}
+    else if(b.dataset.act){cur.act=b.dataset.act; delete cur.reason; if(cur.act==='keep') send({card:id,action:'keep'});}
+    else if(b.dataset.reason){cur.reason=b.dataset.reason; send({card:id,action:'drop',reason:cur.reason});}
+    save(); mark();});
+});
+document.querySelectorAll('.restore').forEach(b=>b.addEventListener('click',()=>{send({card:b.dataset.card,action:'restore'});b.textContent='요청함';}));
+document.getElementById('missed').addEventListener('submit',ev=>{ev.preventDefault();const q=ev.target.q.value.trim(); if(!q) return; send({action:'missed',text:q}); ev.target.reset();});
+</script>
+{% endblock %}

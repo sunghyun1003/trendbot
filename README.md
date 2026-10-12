@@ -1,0 +1,45 @@
+# trendbot: 꼭 알아야 할 것만 모으는 트렌드 아카이브
+
+매일 아침 7:30에 **필수 카드 8~15장**과 **채널별 1위 한 줄씩**이 올라오는 팀 내부용 사이트입니다.
+
+판정 기준은 **독자층이 다른 커뮤니티(남초·여초, 연령대)가 각자의 베스트 목록에 같은 이야기를 동시에 올렸는가**입니다. 여기에 검색·뉴스·유튜브 신호를 더합니다. 이 판정을 통과한 약 30건에만 AI 편집자(Claude Opus 5.5)가 헤드라인, '왜 알아야 하나' 한 줄, 태그를 붙입니다.
+
+- 설계 문서: [docs/trend-archive-plan.md](docs/trend-archive-plan.md)
+- 집 PC 설치: [docs/setup-home-pc.md](docs/setup-home-pc.md)
+
+## 구조
+
+```
+집 PC (항상 켜 둠)                              Cloudflare (무료)
+  수집: 게시판 목록·구글 트렌드·뉴스·유튜브  ─┐
+  네이버 카페: 로그인된 전용 브라우저로 읽기  ├→ SQLite → 판정 → AI 편집 → 정적 사이트 ─→ Pages + Access(팀원 로그인)
+  예약: 윈도우 작업 스케줄러                  ─┘                                          ↑ 회사 PC는 브라우저로 열람만
+```
+
+| 경로 | 내용 |
+|---|---|
+| `config/sources.yaml` | 게시판 켜기/끄기, 독자층 묶음(포드), 채널 1위 목록, 판정 기준 |
+| `config/editor_rules.md` | AI 편집자 하우스 룰 (한국어) |
+| `trendbot/collectors/` | 게시판(설정 기반 범용 수집기), 네이버 카페, 구글 트렌드·뉴스, 유튜브 |
+| `trendbot/pipeline/` | `cluster.py`(이야기 묶기), `grade.py`(등급·중복·채널 1위), `editor.py`(AI), `edition.py`(하루치 판 조립) |
+| `trendbot/site/` | 정적 사이트 생성기와 화면 |
+| `site_functions/api/feedback.js` | 피드백 버튼 저장 (Cloudflare Pages Function) |
+| `tools/probe.py` | 집 PC 첫 점검 도구 |
+
+## 명령어
+
+```
+python -m trendbot sample       # 견본 데이터로 화면 미리보기 (public/index.html)
+python -m trendbot probe        # 집 PC 첫 점검
+python -m trendbot snapshot     # 1회 수집 (--naver: 네이버 카페 포함)
+python -m trendbot daily        # 오늘의 판 생성 + 사이트 배포 (--no-ai, --no-deploy)
+python -m trendbot naver-login  # 네이버 직접 로그인 창
+python -m pytest                # 테스트
+```
+
+## 원칙
+
+- 저장하는 것은 제목, 링크, 수치, AI 요약뿐입니다. 본문과 닉네임은 저장하지 않습니다.
+- robots.txt를 지키고, 사이트당 요청 사이에 3초 간격을 둡니다.
+- 자동 로그인과 차단 우회는 하지 않습니다.
+- 사이트는 내부 열람 전용입니다(noindex, Cloudflare Access).

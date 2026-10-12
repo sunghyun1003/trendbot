@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>{% block title %}트렌드 아카이브{% endblock %}</title>
+<link rel="stylesheet" href="{{ root }}static/style.css">
+</head>
+<body>
+<div class="wrap">
+<nav class="top">
+  <a class="brand" href="{{ root }}index.html">트렌드 아카이브</a>
+  <a class="link {% if page=='today' %}on{% endif %}" href="{{ root }}index.html">오늘</a>
+  <a class="link {% if page=='archive' %}on{% endif %}" href="{{ root }}archive.html">아카이브</a>
+  <span class="spacer"></span>
+  <a class="link {% if page=='status' %}on{% endif %}" href="{{ root }}status.html">상태</a>
+</nav>
+{% block body %}{% endblock %}
+</div>
+<div class="toast" id="toast"></div>
+{% block script %}{% endblock %}
+</body>
+</html>
