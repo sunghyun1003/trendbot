@@ -1,6 +1,6 @@
 """네이버 카페 인기글 수집기 (집 PC 전용).
 
-- 자동 로그인은 하지 않습니다. 사용자가 `python -m trendbot naver-login`으로 연 전용 브라우저 창에서
+- 자동 로그인은 하지 않습니다. 사용자가 집 PC의 'ㄷㅅㅂㄱ 네이버 로그인' 아이콘으로 연 전용 브라우저 창에서
   직접 로그인해 두면, 그 로그인 상태(쿠키)만 재사용합니다.
 - 인기글 목록만 하루 1~2회 읽습니다. 본문은 열지 않습니다.
 - 로그인이 풀렸으면 LoginRequired를 일으켜 상태 페이지에 "집 PC에서 네이버 로그인 필요"를 띄웁니다.
@@ -21,6 +21,14 @@ POPULAR_URL = "https://cafe.naver.com/f-e/cafes/{cafe_id}/popular"
 
 class LoginRequired(Exception):
     pass
+
+
+def _context(pw, headless: bool = True):
+    """로그인 상태가 저장된 전용 브라우저. 집 PC 도우미는 윈도우 기본 Edge를 씀 (TRENDBOT_BROWSER=msedge)."""
+    import os
+    PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    channel = os.environ.get("TRENDBOT_BROWSER") or None
+    return pw.chromium.launch_persistent_context(str(PROFILE_DIR), headless=headless, locale="ko-KR", channel=channel)
 
 
 def _walk_articles(obj: Any, out: list[dict]) -> None:
@@ -75,7 +83,7 @@ def collect(source: dict, headless: bool = True) -> list[Post]:
 
     payloads: list[Any] = []
     with sync_playwright() as pw:
-        ctx = pw.chromium.launch_persistent_context(str(PROFILE_DIR), headless=headless, locale="ko-KR")
+        ctx = _context(pw, headless)
         try:
             page = ctx.new_page()
 
@@ -95,7 +103,7 @@ def collect(source: dict, headless: bool = True) -> list[Post]:
             page.goto(source.get("popular_url") or POPULAR_URL.format(cafe_id=cafe_id), wait_until="networkidle")
             page.wait_for_timeout(2000)
             if "nid.naver.com" in page.url:
-                raise LoginRequired("네이버 로그인이 풀렸습니다. 집 PC에서 `python -m trendbot naver-login`을 실행해 로그인해 주세요.")
+                raise LoginRequired("네이버 로그인이 풀렸습니다. 집 PC 바탕화면의 'ㄷㅅㅂㄱ 네이버 로그인'을 눌러 다시 로그인해 주세요.")
             posts = articles_to_posts(payloads, source, cafe_id)
             if not posts:
                 content = page.content()
@@ -110,9 +118,8 @@ def open_login_window() -> None:
     """사용자가 직접 로그인할 수 있도록 전용 브라우저 창을 엽니다. 창을 닫으면 끝납니다."""
     from playwright.sync_api import sync_playwright
 
-    PROFILE_DIR.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as pw:
-        ctx = pw.chromium.launch_persistent_context(str(PROFILE_DIR), headless=False, locale="ko-KR")
+        ctx = _context(pw, headless=False)
         page = ctx.new_page()
         page.goto("https://nid.naver.com/nidlogin.login")
         print("열린 창에서 네이버에 직접 로그인하세요. ('로그인 상태 유지'를 체크하면 오래 유지됩니다)")
@@ -155,7 +162,7 @@ def fetch_originals(urls: list[str]) -> dict[str, dict]:
     if not urls:
         return out
     with sync_playwright() as pw:
-        ctx = pw.chromium.launch_persistent_context(str(PROFILE_DIR), headless=True, locale="ko-KR")
+        ctx = _context(pw)
         try:
             page = ctx.new_page()
             for url in urls:

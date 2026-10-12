@@ -77,6 +77,21 @@ def download_images(srcs: list[str], page_url: str, day: str, client: httpx.Clie
     return saved
 
 
+def adopt(saved: list[dict], day: str) -> list[dict]:
+    """다른 날짜 폴더에 있는 저장본을 오늘 폴더로 복사 (사이트는 그날 폴더만 올리므로). 없는 파일은 뺌."""
+    out = []
+    for s in saved:
+        src = DATA_DIR / s["file"]
+        dst = MEDIA_DIR / day / src.name
+        if not src.exists() and not dst.exists():
+            continue
+        if not dst.exists():
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+        out.append({**s, "file": f"media/{day}/{src.name}"})
+    return out
+
+
 def split_tiles(png: bytes, day: str, key: str, tile: int = CAPTURE_TILE) -> list[str]:
     """긴 스크린샷을 세로로 나눠 webp로 저장."""
     from PIL import Image
@@ -132,7 +147,8 @@ def capture_body(url: str, selector: str | None, day: str, profile_dir=None) -> 
             browser = pw.chromium.launch(executable_path=exe) if exe else pw.chromium.launch()
         for width in (CAPTURE_WIDTH, 900):  # 모바일 폭에서 본문 구조가 다르면 데스크톱 폭으로 재시도
             opts = dict(locale="ko-KR", viewport={"width": width, "height": 900}, device_scale_factor=2)
-            ctx = (pw.chromium.launch_persistent_context(str(profile_dir), headless=True, **opts) if profile_dir
+            ctx = (pw.chromium.launch_persistent_context(str(profile_dir), headless=True,
+                                                      channel=os.environ.get("TRENDBOT_BROWSER") or None, **opts) if profile_dir
                    else browser.new_context(user_agent=USER_AGENT, **opts))
             try:
                 page = ctx.new_page()

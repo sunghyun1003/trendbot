@@ -207,8 +207,8 @@ sources:
     name: 더쿠 HOT
     pod: P5
     champion: true
-    enabled: true             # 클라우드에서는 보안 검사로 차단됨. 집 PC에서 확인 (우회는 하지 않음)
-    verified: false
+    enabled: true             # GitHub 서버에서 목록 수집 확인됨 (2026-10-12)
+    verified: true
     url: https://theqoo.net/hot
     row: "table.theqoo_board_table tbody tr:not(.notice)"
     fields:
@@ -216,6 +216,8 @@ sources:
       link: "td.title a:not(.replyNum)@href"
       views: "td.m_no"
       comments: "a.replyNum"
+    detail:
+      body: "article .xe_content, div.rd_body"
   - id: natepann
     name: 네이트판 톡커들의 선택
     pod: P6

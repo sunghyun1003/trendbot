@@ -1,0 +1,107 @@
+# ㄷㅅㅂㄱ 자동 실행 (GitHub 서버에서 돌아감. 집 PC·설치 필요 없음)
+# - 수집: 하루 5번 / 발행(수집 + 오늘의 판 + 사이트 올리기): 매일 아침
+# - 대시보드의 '지금 수집'·'지금 발행' 버튼도 이 작업을 실행합니다.
+# - 키는 저장소 Settings → Secrets and variables → Actions 에 넣습니다 (docs/keys-guide.md).
+name: run
+on:
+  schedule:
+    - cron: "27 16 * * *"   # 01:27 수집 (한국 시각, 아래 모두 같음)
+    - cron: "37 21 * * *"   # 06:37 발행 (GitHub 예약은 늦어질 수 있어 07:30보다 넉넉히 앞당김)
+    - cron: "57 2 * * *"    # 11:57 수집
+    - cron: "57 7 * * *"    # 16:57 수집
+    - cron: "57 12 * * *"   # 21:57 수집
+  workflow_call:              # '처음 설정'이 끝나면 첫 발행으로 이어서 부름
+    inputs:
+      task:
+        type: string
+        default: publish
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "collect = 수집만, publish = 수집 + 발행"
+        default: collect
+        type: choice
+        options: [collect, publish]
+concurrency:
+  group: trendbot-run       # 두 작업이 동시에 데이터를 고치지 않게 차례로 실행
+  cancel-in-progress: false
+permissions:
+  contents: write           # 데이터(DB)를 data 브랜치에 저장
+env:
+  TZ: Asia/Seoul
+  TASK: ${{ github.event_name == 'schedule' && (github.event.schedule == '37 21 * * *' && 'publish' || 'collect') || inputs.task }}
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt playwright
+
+      - name: 지난 데이터 불러오기
+        run: |
+          mkdir -p data/media
+          if git ls-remote --exit-code origin data >/dev/null; then
+            git fetch --depth=1 origin data          # 실패하면 여기서 멈춤 (빈 DB로 덮어쓰지 않게)
+            git show FETCH_HEAD:trendbot.db > data/trendbot.db
+            echo "DB $(du -h data/trendbot.db | cut -f1) 불러옴"
+          else
+            echo "처음 실행: 새 DB로 시작"
+          fi
+      - name: 사진 보관함 불러오기
+        id: media
+        uses: actions/cache/restore@v4
+        with:
+          path: data/media
+          key: media-${{ github.run_id }}
+          restore-keys: media-
+
+      - name: 수집
+        run: python -m trendbot snapshot || echo "일부 사이트 실패 (상태 화면에 표시됨)"
+      - name: 집 PC 도우미가 보낸 디젤매니아 받기
+        run: python -m trendbot inbox
+
+      - name: 발행 준비 (브라우저·Node)
+        if: env.TASK == 'publish'
+        run: python -m playwright install --with-deps chromium
+      - uses: actions/setup-node@v4
+        if: env.TASK == 'publish'
+        with:
+          node-version: "22"
+      - name: 오늘의 판 만들기 + 사이트 올리기
+        if: env.TASK == 'publish'
+        run: |
+          flags=""
+          [ -z "$ANTHROPIC_API_KEY" ] && flags="$flags --no-ai" && echo "AI 키가 없어 원제목으로 발행"
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            flags="$flags --no-deploy"; echo "Cloudflare 키가 없어 사이트는 올리지 않음"
+          fi
+          python -m trendbot daily $flags
+
+      - name: 데이터 저장
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -s data/trendbot.db ] || exit 0
+          tmp=$(mktemp -d) && cp data/trendbot.db "$tmp/" && cd "$tmp"
+          git init -q -b data && git add trendbot.db
+          git -c user.name=trendbot -c user.email=trendbot@users.noreply.github.com commit -qm "데이터 $(date '+%F %H:%M')"
+          git push -fq "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" data
+      - name: 사진 보관함 저장
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/media
+          key: media-${{ github.run_id }}
+      - name: 결과 요약
+        if: always()
+        run: python -m trendbot report >> "$GITHUB_STEP_SUMMARY" || true

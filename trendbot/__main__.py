@@ -1,7 +1,7 @@
-"""명령어 모음. 집 PC에서 `python -m trendbot <명령>`으로 실행합니다.
+"""명령어 모음. GitHub 서버(.github/workflows/run.yml)가 자동으로 실행합니다. 사용자가 직접 칠 일은 없습니다.
 
   snapshot      게시판·검색·영상 신호를 한 번 수집 (하루 5회 예약 실행)
-  daily         오늘의 판을 만들고 사이트를 생성·배포 (매일 07:00 예약 실행)
+  daily         오늘의 판을 만들고 사이트를 생성·배포 (매일 아침 예약 실행)
   probe         처음 설치 때 1회: 사이트별 접속·차단·선택자 점검, 화면 샘플 저장
   naver-login   네이버 로그인 창 열기 (직접 로그인)
   build-site    저장된 판으로 사이트만 다시 생성
@@ -10,6 +10,8 @@
   pull-feedback 팀원 피드백(유지/제외/놓친 것) 가져오기 (daily에서 자동 실행)
   doctor        설치·키·접속 상태를 한 번에 점검
   report        수집 품질 리포트 (사이트별 성공률, 원문·사진·댓글)
+  inbox         집 PC 도우미가 보낸 디젤매니아 결과 받기
+  cloud-setup   처음 설정: Cloudflare 사이트·저장소·로그인 잠금 자동 생성
 """
 
 from __future__ import annotations
@@ -133,6 +135,8 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("sample")
     sub.add_parser("pull-feedback")
     sub.add_parser("report")
+    sub.add_parser("inbox")
+    sub.add_parser("cloud-setup")
     dr = sub.add_parser("doctor")
     dr.add_argument("--quick", action="store_true", help="사이트 접속 점검 생략")
     args = ap.parse_args(argv)
@@ -155,6 +159,12 @@ def main(argv: list[str] | None = None) -> int:
         open_login_window()
     elif args.cmd == "build-site":
         cmd_build_site(cfg)
+    elif args.cmd == "cloud-setup":
+        from trendbot.cloud_setup import main as setup_main
+        return setup_main()
+    elif args.cmd == "inbox":
+        from trendbot import inbox
+        print(inbox.pull(storage.connect()))
     elif args.cmd == "report":
         from trendbot.report import run as report_run
         print(report_run(cfg))

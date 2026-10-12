@@ -1,0 +1,32 @@
+# '처음 설정' — GitHub 웹: Actions → setup → Run workflow 버튼 한 번.
+# 비밀값(키)을 넣은 뒤 실행하면 Cloudflare 사이트·저장소·팀원 로그인 잠금을 만들고, 이어서 첫 발행까지 합니다.
+# 몇 번을 다시 눌러도 안전합니다 (팀원 이메일을 바꿨을 때도 다시 누르면 반영).
+name: setup
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  cloudflare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      ALLOWED_EMAILS: ${{ secrets.ALLOWED_EMAILS }}
+      DASHBOARD_TOKEN: ${{ secrets.DASHBOARD_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Cloudflare 준비
+        run: python -m trendbot cloud-setup | tee -a "$GITHUB_STEP_SUMMARY"; exit ${PIPESTATUS[0]}
+  first-publish:
+    needs: cloudflare
+    uses: ./.github/workflows/run.yml
+    with:
+      task: publish
+    secrets: inherit

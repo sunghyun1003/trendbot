@@ -54,11 +54,16 @@ def attach_originals(posts: list[dict], cfg: dict) -> None:
             continue
         p["original"] = fetch_original(p["url"], srcs.get(p["source_id"]))
     if cafe:
-        try:
-            from trendbot.collectors.naver_cafe import fetch_originals
-            got = fetch_originals([p["url"] for p in cafe])
-        except Exception as e:
-            got = {p["url"]: {"status": "error", "body": "", "images": [], "comments": [], "note": str(e)[:80]} for p in cafe}
+        from trendbot import inbox
+        from trendbot.collectors.naver_cafe import PROFILE_DIR
+        got = inbox.lookup([p["url"] for p in cafe])  # 집 PC 도우미가 미리 보낸 원문
+        rest = [p["url"] for p in cafe if p["url"] not in got]
+        if rest and PROFILE_DIR.exists():  # 로그인된 브라우저가 있는 PC에서 직접 실행할 때
+            try:
+                from trendbot.collectors.naver_cafe import fetch_originals
+                got.update(fetch_originals(rest))
+            except Exception as e:
+                got.update({u: {"status": "error", "body": "", "images": [], "comments": [], "note": str(e)[:80]} for u in rest})
         for p in cafe:
             p["original"] = got.get(p["url"], {"status": "error", "body": "", "images": [], "comments": []})
 
@@ -73,6 +78,9 @@ def attach_media(posts: list[dict], cfg: dict, day: str, capture: bool = True, m
         if not o or o.get("status") != "ok":
             continue
         src = srcs.get(p["source_id"], {})
+        if o.get("saved"):  # 집 PC 도우미가 이미 저장해 보낸 사진: 오늘 폴더로 옮겨 씀
+            o["saved"] = media.adopt(o["saved"], day)
+            continue
         try:
             o["saved"] = media.download_images(o.get("images", [])[:max_images], p["url"], day)
         except Exception:
@@ -82,6 +90,8 @@ def attach_media(posts: list[dict], cfg: dict, day: str, capture: bool = True, m
                 profile = None
                 if src.get("kind") == "naver_cafe":
                     from trendbot.collectors.naver_cafe import PROFILE_DIR as profile
+                    if not profile.exists():
+                        continue
                 o["capture"] = media.capture_body(p["url"], (src.get("detail") or {}).get("body"), day, profile)
             except Exception as e:
                 o["capture_error"] = e.__class__.__name__

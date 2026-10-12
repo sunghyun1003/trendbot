@@ -1,15 +1,15 @@
-"""팀원이 사이트에서 누른 유지/제외/놓친 것 기록을 집 PC로 가져옵니다.
+"""팀원이 사이트에서 누른 유지/제외/놓친 것 기록을 가져옵니다.
 
-사이트는 Cloudflare Access로 잠겨 있으므로, 서비스 토큰(CF_ACCESS_CLIENT_ID/SECRET)을 출입증으로 씁니다.
-키가 없으면 조용히 건너뜁니다(발행에는 영향 없음).
+사이트 버튼 → Cloudflare KV(fb: 접두어)에 저장 → 발행 때 Cloudflare API로 읽어 DB에 넣고 KV에서는 지움.
+Cloudflare 키가 없으면 조용히 건너뜁니다(발행에는 영향 없음).
 """
 
 from __future__ import annotations
 
-import os
+import json
 import sqlite3
 
-import httpx
+from trendbot import cloudflare
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS feedback (
@@ -18,21 +18,7 @@ CREATE TABLE IF NOT EXISTS feedback (
   UNIQUE(at, user, card, action)
 );
 """
-NEEDED = ("SITE_URL", "CF_ACCESS_CLIENT_ID", "CF_ACCESS_CLIENT_SECRET", "EXPORT_TOKEN")
-
-
-def configured() -> bool:
-    return all(os.environ.get(k) for k in NEEDED)
-
-
-def fetch(client: httpx.Client | None = None, since: str = "") -> list[dict]:
-    url = os.environ["SITE_URL"].rstrip("/") + "/api/feedback"
-    c = client or httpx.Client(timeout=30)
-    r = c.get(url, params={"token": os.environ["EXPORT_TOKEN"], "since": since},
-              headers={"CF-Access-Client-Id": os.environ["CF_ACCESS_CLIENT_ID"],
-                       "CF-Access-Client-Secret": os.environ["CF_ACCESS_CLIENT_SECRET"]})
-    r.raise_for_status()
-    return r.json()
+PREFIX = "fb:"
 
 
 def save(db: sqlite3.Connection, rows: list[dict]) -> int:
@@ -47,21 +33,19 @@ def save(db: sqlite3.Connection, rows: list[dict]) -> int:
     return db.total_changes - before
 
 
-def pull(db: sqlite3.Connection, client: httpx.Client | None = None) -> str:
+def pull(db: sqlite3.Connection, client: "cloudflare.Client | None" = None) -> str:
     """가져와 저장하고, 결과를 한국어 한 줄로 돌려줌."""
-    if not configured():
-        return "피드백 가져오기: 키가 없어 건너뜀 (docs/keys-guide.md 4번)"
-    db.executescript(SCHEMA)
-    last = db.execute("SELECT MAX(at) FROM feedback").fetchone()[0] or ""
+    if not client and not cloudflare.configured():
+        return "피드백 가져오기: Cloudflare 키가 없어 건너뜀"
     try:
-        rows = fetch(client, since=last[:10])
-    except httpx.HTTPStatusError as e:
-        code = e.response.status_code
-        hint = {401: "사이트 쪽 Access 설정(AUD) 확인", 403: "EXPORT_TOKEN 또는 서비스 토큰 정책 확인"}.get(code, "")
-        return f"피드백 가져오기 실패: {code} {hint}".strip()
-    except httpx.HTTPError as e:
-        return f"피드백 가져오기 실패: {e.__class__.__name__}"
-    return f"피드백 {save(db, rows)}건 새로 저장"
+        cf = client or cloudflare.Client()
+        keys = cf.kv_keys(PREFIX)
+        rows = [json.loads(cf.kv_get(k)) for k in keys]
+        n = save(db, rows)
+        cf.kv_delete(keys)  # DB에 옮겼으니 지움 (다음엔 새 것만)
+    except (cloudflare.CloudflareError, ValueError) as e:
+        return f"피드백 가져오기 실패: {e}"[:200]
+    return f"피드백 {n}건 새로 저장"
 
 
 def summary(db: sqlite3.Connection, days: int = 14) -> dict:

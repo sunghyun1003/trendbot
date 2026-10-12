@@ -2,6 +2,7 @@
 name: check
 on:
   push:
+    branches-ignore: [data]   # data 브랜치는 DB 보관용
   pull_request:
 jobs:
   test:

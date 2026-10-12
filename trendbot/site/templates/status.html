@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}ㄷㅅㅂㄱ · 상태{% endblock %}
-{% set FIX = {'로그인': 'naver-login 실행 후 직접 로그인', '차단': '우회하지 않고 꺼 둠', '기록 없음': '집 PC 켜져 있는지 확인'} %}
+{% set FIX = {'로그인': "집 PC 바탕화면 'ㄷㅅㅂㄱ 네이버 로그인'", '차단': '우회하지 않고 꺼 둠', '기록 없음': '아래 집 PC 도우미 확인'} %}
 {% block body %}
 <div class="feed-col single">
   {% set bad = sources|selectattr('enabled')|rejectattr('ok')|list %}
@@ -16,5 +16,66 @@
     </li>
     {% endfor %}
   </ul>
+
+  <section class="admin" id="admin" hidden>
+    <h2>지금 실행</h2>
+    <div class="adm-btns">
+      <button class="btn" data-run="collect">지금 수집</button>
+      <button class="btn" data-run="publish">지금 발행</button>
+    </div>
+    <ul class="health" id="runs"></ul>
+
+    <h2>집 PC 도우미 <small>디젤매니아 담당</small></h2>
+    <ul class="health"><li id="agent"><span class="dot"></span><b>연결 기록 없음</b><span></span></li></ul>
+    <div class="adm-btns">
+      <button class="btn ghost" id="naver-now">디젤매니아 지금 수집</button>
+      <button class="btn ghost" id="helper">도우미 설치 파일 받기</button>
+    </div>
+    <p class="adm-note">설치 파일은 집 PC에서 한 번만 더블클릭하세요. 파란 경고창이 뜨면 '추가 정보 → 실행'. 설치가 끝나면 열리는 창에서 네이버에 직접 로그인합니다.</p>
+
+    <h2>키 <small>값은 보이지 않아요</small></h2>
+    <ul class="health" id="keys"></ul>
+    <p class="adm-note" id="keys-note"></p>
+
+    <h2>사이트 켜기·끄기</h2>
+    <ul class="health" id="srcs"></ul>
+  </section>
+  <p class="adm-note" id="admin-off" hidden>관리 버튼은 배포된 사이트에서 로그인했을 때만 보여요.</p>
 </div>
+{% endblock %}
+
+{% block script %}
+<script>
+const $=s=>document.querySelector(s);
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const when=t=>t?new Date(t).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+const RUN={success:['ok','성공'],failure:['bad','실패'],cancelled:['off','취소']};
+const EV={schedule:'예약',workflow_dispatch:'버튼',push:'코드 반영'};
+async function call(body){const r=await fetch('api/admin',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));toast(j.message||(r.ok?'완료':'실패했어요'));return r.ok;}
+async function load(){
+  let d;try{const r=await fetch('api/admin');if(!r.ok)throw 0;d=await r.json();}catch(e){$('#admin-off').hidden=false;return;}
+  $('#admin').hidden=false;
+  $('#runs').innerHTML=d.runs.map(r=>{const[c,l]=r.status!=='completed'?['ok','진행 중']:(RUN[r.conclusion]||['off',r.conclusion]);
+    return `<li class="${c}"><span class="dot"></span><b>${when(r.at)}</b><span><a href="${esc(r.url)}" target="_blank" rel="noopener">${EV[r.event]||r.event} · ${l}</a></span></li>`}).join('')||'<li class="off"><span class="dot"></span><b>아직 실행 기록 없음</b><span></span></li>';
+  const a=d.agent, li=$('#agent');
+  if(a){const stale=Date.now()-new Date(a.at)>1000*60*60*3, login=a.naver==='login';
+    li.className=stale||login?'bad':'ok';
+    li.innerHTML=`<span class="dot"></span><b>${stale?'집 PC 연결 끊김':login?'네이버 다시 로그인 필요':'정상'}</b><span>${login?"바탕화면 'ㄷㅅㅂㄱ 네이버 로그인'":'마지막 연결 '+when(a.at)}</span>`;}
+  const add=d.repo?`https://github.com/${d.repo}/settings/secrets/actions/new`:'';
+  $('#keys').innerHTML=d.keys.map(k=>`<li class="${k.ok?'ok':(k.required?'bad':'off')}"><span class="dot"></span><b>${esc(k.label)}</b><span>${k.ok?'✓':(add?`<a href="${add}" target="_blank" rel="noopener">넣기 (${k.name})</a>`:'✗')}</span></li>`).join('');
+  $('#keys-note').innerHTML=d.ready?(d.repo?`키를 넣거나 바꾼 뒤에는 <a href="https://github.com/${d.repo}/actions/workflows/setup.yml" target="_blank" rel="noopener">처음 설정</a>을 한 번 더 눌러 주세요.`:''):'DASHBOARD_TOKEN을 넣고 처음 설정을 다시 실행하면 버튼이 켜져요.';
+  $('#srcs').innerHTML=d.sources.map(s=>`<li class="${s.enabled?'ok':'off'}"><span class="dot"></span><b>${esc(s.name)}</b><span><label class="sw"><input type="checkbox" data-src="${esc(s.id)}" ${s.enabled?'checked':''}><i></i></label></span></li>`).join('');
+}
+document.addEventListener('click',async ev=>{
+  const b=ev.target.closest('[data-run]');if(b){b.disabled=true;await call({action:'run',task:b.dataset.run});setTimeout(load,4000);b.disabled=false;}
+  if(ev.target.closest('#naver-now')) call({action:'naver_now'});
+  if(ev.target.closest('#helper')){const r=await fetch('api/admin',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'helper'})});
+    if(!r.ok)return toast('받지 못했어요');const u=URL.createObjectURL(await r.blob());const x=document.createElement('a');x.href=u;x.download='dsbg-setup.cmd';x.click();toast('집 PC에서 이 파일을 더블클릭하세요');}
+});
+document.addEventListener('change',async ev=>{const c=ev.target.closest('[data-src]');if(!c)return;
+  if(!await call({action:'toggle',id:c.dataset.src,enabled:c.checked}))c.checked=!c.checked;});
+load();
+</script>
 {% endblock %}

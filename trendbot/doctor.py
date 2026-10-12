@@ -1,4 +1,6 @@
-"""`python -m trendbot doctor` — 설치·키·접속 상태를 한 번에 점검하고 고칠 방법을 알려 줍니다."""
+"""`python -m trendbot doctor` — 키·접속 상태를 한 번에 점검하고 고칠 방법을 알려 줍니다 (개발·수리용).
+
+평소에는 사이트 '상태' 화면의 키 ✓/✗ 로 충분합니다."""
 
 from __future__ import annotations
 
@@ -9,7 +11,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from trendbot.config import DATA_DIR, ROOT
+from trendbot.config import DATA_DIR
 
 
 @dataclass
@@ -20,23 +22,19 @@ class Check:
     fix: str = ""
 
 
-KEY_RULES = {
+KEY_RULES = {  # 모두 GitHub 저장소 Settings → Secrets and variables → Actions 에 넣음
     "ANTHROPIC_API_KEY": (r"^sk-ant-[\w-]{20,}$", True, "keys-guide 1번: console.anthropic.com → API Keys"),
-    "YOUTUBE_API_KEY": (r"^AIza[\w-]{30,}$", False, "keys-guide 2번: Google Cloud → 사용자 인증 정보 → API 키"),
-    "CLOUDFLARE_ACCOUNT_ID": (r"^[0-9a-f]{32}$", True, "keys-guide 3-1: 대시보드의 Account ID"),
-    "CLOUDFLARE_API_TOKEN": (r"^[\w-]{30,}$", True, "keys-guide 3-2: My Profile → API Tokens"),
-    "SITE_URL": (r"^https://[\w.-]+$", False, "keys-guide 4-1: 사이트 주소 (예: https://trendbot.pages.dev)"),
-    "CF_ACCESS_CLIENT_ID": (r"^[\w.-]{10,}$", False, "keys-guide 4-1: Zero Trust → Service Auth"),
-    "CF_ACCESS_CLIENT_SECRET": (r"^[\w-]{20,}$", False, "keys-guide 4-1: Service Token의 Client Secret"),
-    "EXPORT_TOKEN": (r"^[\w-]{16,}$", False, "keys-guide 4-2: 직접 만든 비밀 문자열"),
+    "CLOUDFLARE_ACCOUNT_ID": (r"^[0-9a-f]{32}$", True, "keys-guide 2번: Cloudflare 대시보드의 Account ID"),
+    "CLOUDFLARE_API_TOKEN": (r"^[\w-]{30,}$", True, "keys-guide 3번: My Profile → API Tokens (권한 4가지)"),
+    "ALLOWED_EMAILS": (r"^[^@\s,]+@[^@\s,]+(\s*,\s*[^@\s,]+@[^@\s,]+)*$", True, "keys-guide 5번: 볼 사람 이메일을 쉼표로"),
+    "DASHBOARD_TOKEN": (r"^(github_pat_|ghp_)\w{20,}$", True, "keys-guide 6번: GitHub → Fine-grained token"),
+    "YOUTUBE_API_KEY": (r"^AIza[\w-]{30,}$", False, "keys-guide 7번: Google Cloud → 사용자 인증 정보 → API 키"),
 }
 
 
 def check_keys(env: dict | None = None) -> list[Check]:
     env = env if env is not None else os.environ
     out = []
-    if not (ROOT / ".env").exists() and env is os.environ:
-        out.append(Check(".env 파일", False, "없음", ".env.example을 복사해 이름을 .env로 바꾸세요"))
     for key, (pattern, required, where) in KEY_RULES.items():
         val = (env.get(key) or "").strip()
         if not val:
@@ -135,8 +133,6 @@ def render(checks: list[Check]) -> str:
 
 def run(cfg: dict, quick: bool = False) -> int:
     sections = [("키", check_keys()), ("연결", check_live_keys()), ("도구", check_tools())]
-    if os.environ.get("SITE_URL"):
-        sections.append(("사이트 잠금", [check_site_locked(os.environ["SITE_URL"])]))
     if not quick:
         sections.append(("수집 소스", check_sources(cfg)))
     failed = 0

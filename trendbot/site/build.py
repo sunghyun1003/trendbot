@@ -15,6 +15,22 @@ from trendbot.config import DATA_DIR, ROOT, load_config
 HERE = Path(__file__).parent
 OUT = ROOT / "public"
 FUNCTIONS_SRC = ROOT / "site_functions"
+HELPER_SRC = ROOT / "tools" / "helper"
+
+
+def package_helper(out: Path) -> None:
+    """집 PC 도우미: 설치 스크립트 + 프로그램 묶음(helper.zip). 도우미 창구(/api/agent)로만 내려받음."""
+    import zipfile
+
+    folder = out / "helper"
+    folder.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(HELPER_SRC / "install.ps1", folder / "install.ps1")
+    with zipfile.ZipFile(folder / "helper.zip", "w", zipfile.ZIP_DEFLATED) as z:
+        files = [(HELPER_SRC / "helper.py", "helper.py"), (ROOT / "config" / "sources.yaml", "config/sources.yaml")]
+        files += [(f, f.relative_to(ROOT).as_posix()) for f in sorted((ROOT / "trendbot").rglob("*.py"))
+                  if not {"site", "__pycache__"} & set(f.relative_to(ROOT).parts)]
+        for f, name in files:  # 날짜를 고정해 내용이 같으면 묶음도 같게 (도우미가 쓸데없이 다시 받지 않음)
+            z.writestr(zipfile.ZipInfo(name, (2026, 1, 1, 0, 0, 0)), f.read_bytes(), zipfile.ZIP_DEFLATED)
 WEEKDAYS = "월화수목금토일"
 ORIGINAL_KEEP_DAYS = 30  # 원문 본문을 보관하는 기간
 
@@ -149,6 +165,7 @@ def build(editions: list[dict], health: list[dict], out: Path = OUT) -> Path:
             encoding="utf-8")
     (out / "robots.txt").write_text("User-agent: *\nDisallow: /\n", encoding="utf-8")
     (out / "_headers").write_text("/*\n  X-Robots-Tag: noindex, nofollow\n  Referrer-Policy: no-referrer\n", encoding="utf-8")
+    package_helper(out)
     if FUNCTIONS_SRC.exists():
         shutil.copytree(FUNCTIONS_SRC, out / "functions")
     return out
