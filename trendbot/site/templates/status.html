@@ -1,26 +1,20 @@
 {% extends "base.html" %}
 {% block title %}ㄷㅅㅂㄱ · 상태{% endblock %}
+{% set FIX = {'로그인': 'naver-login 실행 후 직접 로그인', '차단': '우회하지 않고 꺼 둠', '기록 없음': '집 PC 켜져 있는지 확인'} %}
 {% block body %}
 <div class="feed-col single">
-  <section class="hello">
-    <div class="hello-date">수집 상태</div>
-    <h1>{% set bad = sources|selectattr('enabled')|rejectattr('ok')|list %}{% if bad %}<em>{{ bad|length }}</em>곳이 아파요{% else %}모두 건강해요{% endif %}</h1>
-    <p>최근 판: {{ e.date if e else '아직 없음' }}</p>
+  {% set bad = sources|selectattr('enabled')|rejectattr('ok')|list %}
+  <section class="hero">
+    <div class="hero-d">수집 상태{% if e %} · {{ e.date[5:]|replace('-','.') }}{% endif %}</div>
+    <div class="hero-n"><b class="{{ 'bad' if bad }}">{{ (sources|selectattr('enabled')|list|length) - bad|length }}/{{ sources|selectattr('enabled')|list|length }}</b><span>{{ '정상' if not bad else '정상 작동' }}</span></div>
   </section>
   <ul class="health">
     {% for s in sources %}
     <li class="{{ 'off' if not s.enabled else ('ok' if s.ok else 'bad') }}">
       <span class="dot"></span><b>{{ s.name }}</b>
-      <span>{% if not s.enabled %}꺼둠{% elif s.ok %}정상{% else %}{{ s.message }}{% endif %}{% if not s.verified %} · 화면 미확인{% endif %}</span>
+      <span>{% if not s.enabled %}꺼짐{% elif not s.ok %}{% for k, v in FIX.items() if k in s.message %}{{ v }}{% else %}고장 수리 필요{% endfor %}{% endif %}</span>
     </li>
     {% endfor %}
   </ul>
-  <section class="minis">
-    <h3>아플 때 처방전</h3>
-    <div class="mini">전부 빨간불<span>집 PC가 꺼졌거나 인터넷이 끊겼어요. PC를 켜면 다음 수집 때 돌아와요.</span></div>
-    <div class="mini">네이버 로그인 필요<span>집 PC에서 <code>python -m trendbot naver-login</code> 후 직접 로그인</span></div>
-    <div class="mini">한 곳만 빨간불<span>사이트 화면이 바뀐 경우가 많아요. Claude Code에 "고장 수리: 사이트 이름"</span></div>
-    <div class="mini">AI 문장이 없음<span>Anthropic 크레딧·키 확인. 그동안은 원제목으로 나가요.</span></div>
-  </section>
 </div>
 {% endblock %}
