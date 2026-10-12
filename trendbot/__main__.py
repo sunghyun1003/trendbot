@@ -9,6 +9,7 @@
   sample        견본 데이터로 사이트 미리보기 생성
   pull-feedback 팀원 피드백(유지/제외/놓친 것) 가져오기 (daily에서 자동 실행)
   doctor        설치·키·접속 상태를 한 번에 점검
+  report        수집 품질 리포트 (사이트별 성공률, 원문·사진·댓글)
 """
 
 from __future__ import annotations
@@ -131,6 +132,7 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("deploy")
     sub.add_parser("sample")
     sub.add_parser("pull-feedback")
+    sub.add_parser("report")
     dr = sub.add_parser("doctor")
     dr.add_argument("--quick", action="store_true", help="사이트 접속 점검 생략")
     args = ap.parse_args(argv)
@@ -153,6 +155,9 @@ def main(argv: list[str] | None = None) -> int:
         open_login_window()
     elif args.cmd == "build-site":
         cmd_build_site(cfg)
+    elif args.cmd == "report":
+        from trendbot.report import run as report_run
+        print(report_run(cfg))
     elif args.cmd == "pull-feedback":
         from trendbot import feedback
         print(feedback.pull(storage.connect()))

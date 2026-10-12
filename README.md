@@ -37,6 +37,7 @@ python -m trendbot daily        # 오늘의 판 생성 + 사이트 배포 (--no-
 python -m trendbot naver-login  # 네이버 직접 로그인 창
 python -m trendbot pull-feedback # 팀원 피드백 가져오기 (daily에서 자동)
 python -m trendbot doctor       # 설치·키·접속 한 번에 점검
+python -m trendbot report       # 수집 품질 리포트 (data/quality_report.md)
 python -m pytest                # 테스트
 ```
 

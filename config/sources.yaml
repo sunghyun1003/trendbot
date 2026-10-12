@@ -201,6 +201,8 @@ sources:
       views: "td.listno!1"
       likes: "td.listno!2"
       comments: "span.cmt3"
+    detail:
+      body: "#memo_content_1"   # 댓글은 시간순이라 베스트가 아님 → 가져오지 않음
   - id: theqoo
     name: 더쿠 HOT
     pod: P5
