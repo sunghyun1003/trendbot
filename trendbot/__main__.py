@@ -7,6 +7,8 @@
   build-site    저장된 판으로 사이트만 다시 생성
   deploy        public/ 폴더를 Cloudflare Pages에 올리기
   sample        견본 데이터로 사이트 미리보기 생성
+  pull-feedback 팀원 피드백(유지/제외/놓친 것) 가져오기 (daily에서 자동 실행)
+  doctor        설치·키·접속 상태를 한 번에 점검
 """
 
 from __future__ import annotations
@@ -89,8 +91,10 @@ def cmd_build_site(cfg: dict) -> None:
 
 def cmd_daily(cfg: dict, use_ai: bool, deploy: bool) -> None:
     from trendbot.pipeline.edition import build_edition
+    from trendbot import feedback
     from trendbot.collectors import media
     db = storage.connect()
+    print(feedback.pull(db))
     media.prune()
     edition = build_edition(db, cfg, use_ai=use_ai)
     storage.save_edition(db, edition)
@@ -101,9 +105,15 @@ def cmd_daily(cfg: dict, use_ai: bool, deploy: bool) -> None:
 
 
 def cmd_deploy() -> None:
+    """public/ 폴더를 Cloudflare Pages에 올림. 처음이면 프로젝트부터 만듦."""
     project = os.environ.get("CF_PAGES_PROJECT", "trendbot")
-    subprocess.run(["npx", "--yes", "wrangler@3", "pages", "deploy", str(ROOT / "public"), "--project-name", project,
-                    "--branch", "main"], check=True, cwd=ROOT, shell=sys.platform == "win32")
+    win = sys.platform == "win32"
+    wrangler = ["npx", "--yes", "wrangler@3", "pages"]
+    # 이미 있으면 실패해도 괜찮음
+    subprocess.run(wrangler + ["project", "create", project, "--production-branch", "main"], cwd=ROOT, shell=win,
+                   capture_output=True)
+    subprocess.run(wrangler + ["deploy", str(ROOT / "public"), "--project-name", project, "--branch", "main",
+                               "--commit-dirty=true"], check=True, cwd=ROOT, shell=win)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -120,6 +130,9 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("build-site")
     sub.add_parser("deploy")
     sub.add_parser("sample")
+    sub.add_parser("pull-feedback")
+    dr = sub.add_parser("doctor")
+    dr.add_argument("--quick", action="store_true", help="사이트 접속 점검 생략")
     args = ap.parse_args(argv)
 
     try:
@@ -140,6 +153,12 @@ def main(argv: list[str] | None = None) -> int:
         open_login_window()
     elif args.cmd == "build-site":
         cmd_build_site(cfg)
+    elif args.cmd == "pull-feedback":
+        from trendbot import feedback
+        print(feedback.pull(storage.connect()))
+    elif args.cmd == "doctor":
+        from trendbot.doctor import run as doctor_run
+        return doctor_run(cfg, quick=args.quick)
     elif args.cmd == "deploy":
         cmd_deploy()
     elif args.cmd == "sample":
