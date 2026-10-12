@@ -33,7 +33,8 @@
   {% set top = c.top %}
   <article class="post" id="c-{{ c.id }}" data-card="{{ c.id }}">
     {% set rep = c.posts[0] if c.posts else None %}
-    {% set thumb = (rep.original.images[0] if rep and rep.original and rep.original.images else None) %}
+    {% set o0 = rep.original if rep and rep.original else {} %}
+    {% set thumb = (root ~ o0.saved[0].file) if o0.saved else ((root ~ o0.capture[0]) if o0.capture else (o0.images[0] if o0.images else None)) %}
     <a class="cover {{ 'has-img' if vid or thumb }}" data-f="{{ c.field }}" href="{{ root }}{{ c.href }}">
       {% if thumb and not vid %}<img src="{{ thumb }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.remove('has-img');this.remove()">{% endif %}
       {% if vid %}<img src="https://i.ytimg.com/vi/{{ vid }}/hqdefault.jpg" alt="" loading="lazy"><span class="play">{{ icon('play') }}</span>{% endif %}

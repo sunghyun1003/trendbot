@@ -10,7 +10,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from trendbot.config import ROOT
+from trendbot.config import DATA_DIR, ROOT
 
 HERE = Path(__file__).parent
 OUT = ROOT / "public"
@@ -66,6 +66,7 @@ def build(editions: list[dict], health: list[dict], out: Path = OUT) -> Path:
         shutil.rmtree(out)
     (out / "d").mkdir(parents=True)
     shutil.copytree(HERE / "static", out / "static")
+    media_src = DATA_DIR / "media"
     env = _env()
     newest = Date.fromisoformat(editions[0]["date"]) if editions else None
     for e in editions:
@@ -78,9 +79,11 @@ def build(editions: list[dict], health: list[dict], out: Path = OUT) -> Path:
             if ch.get("post"):
                 n = ch.get("in_card")
                 ch["href"] = e["cards"][n - 1]["href"] if n and n <= len(e["cards"]) else f"d/{e['date']}/ch-{ch['source_id']}.html"
-        if old:  # 오래된 판은 원문 본문을 지우고 링크만 남김
+        if old:  # 오래된 판은 원문 본문·이미지를 지우고 링크만 남김
             for p in [p for c in e["cards"] for p in c["posts"]] + [ch["post"] for ch in e["champions"] if ch.get("post")]:
                 p.pop("original", None)
+        elif (media_src / e["date"]).exists():  # 보관 기간 안의 저장 이미지·캡처를 사이트에 함께 올림
+            shutil.copytree(media_src / e["date"], out / "media" / e["date"], dirs_exist_ok=True)
 
     day = env.get_template("day.html")
     for e in editions:

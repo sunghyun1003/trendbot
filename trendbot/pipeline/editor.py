@@ -5,6 +5,7 @@ AI가 실패하면 '편집자 부재' 모드로, 원제목과 근거만으로 �
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 
@@ -62,6 +63,41 @@ def _brief(card: dict) -> dict:
     }
 
 
+MAX_IMAGES_PER_CARD = 3
+MAX_IMAGES_TOTAL = 60
+
+
+def _image_block(path) -> dict | None:
+    """저장된 원문 이미지를 긴 변 1024px로 줄여 AI에게 보낼 형태로 만듦."""
+    from trendbot.collectors.media import to_webp
+
+    try:
+        data = to_webp(path.read_bytes(), max_side=1024)
+    except OSError:
+        return None
+    if not data:
+        return None
+    return {"type": "image", "source": {"type": "base64", "media_type": "image/webp",
+                                        "data": base64.standard_b64encode(data).decode()}}
+
+
+def _content(cards: list[dict], payload: str) -> list[dict]:
+    """카드 목록(JSON) + 카드별 대표 이미지(최대 3장). 이미지 위주 글도 내용을 보고 쓰게 함."""
+    from trendbot.config import DATA_DIR
+
+    blocks: list[dict] = [{"type": "text", "text": "오늘의 후보 카드입니다. 카드마다 하나씩 결과를 주세요.\n\n" + payload}]
+    total = 0
+    for c in cards:
+        saved = [s for p in c["posts"][:1] for s in (p.get("original") or {}).get("saved", [])][:MAX_IMAGES_PER_CARD]
+        imgs = [b for b in (_image_block(DATA_DIR / s["file"]) for s in saved) if b]
+        if not imgs or total + len(imgs) > MAX_IMAGES_TOTAL:
+            continue
+        blocks.append({"type": "text", "text": f"카드 {c['id']}의 원문 이미지 {len(imgs)}장:"})
+        blocks.extend(imgs)
+        total += len(imgs)
+    return blocks
+
+
 def edit(cards: list[dict]) -> tuple[dict[str, dict], str | None]:
     """{card_id: 편집 결과}, 오류 메시지(없으면 None)."""
     if not cards:
@@ -79,7 +115,7 @@ def edit(cards: list[dict]) -> tuple[dict[str, dict], str | None]:
             fallbacks="default",
             system=rules,
             output_config={"effort": "medium", "format": {"type": "json_schema", "schema": SCHEMA}},
-            messages=[{"role": "user", "content": "오늘의 후보 카드입니다. 카드마다 하나씩 결과를 주세요.\n\n" + payload}],
+            messages=[{"role": "user", "content": _content(cards, payload)}],
         )
     except anthropic.APIError as e:
         return {}, f"AI 호출 실패: {e.__class__.__name__}"

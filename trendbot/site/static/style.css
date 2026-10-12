@@ -397,3 +397,11 @@ svg { display: block; flex: none; }
   .pc-back:hover { background: var(--fill2); }
   .pc-back svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 }
+
+/* 원문 캡처 */
+.o-cap { position: relative; margin-top: 4px; border-radius: var(--r-md); overflow: hidden; border: .5px solid var(--line); }
+.o-cap img { display: block; width: 100%; height: auto; }
+.cap-k { position: absolute; top: 10px; left: 10px; font-size: 11px; font-weight: 700; color: #fff; background: rgba(25,31,40,.72); padding: 3px 8px; border-radius: 999px; }
+.o-txt { margin-top: 12px; }
+.o-txt summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--t3); list-style: none; }
+.o-txt summary::-webkit-details-marker { display: none; }

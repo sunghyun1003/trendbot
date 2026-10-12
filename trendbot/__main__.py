@@ -89,7 +89,9 @@ def cmd_build_site(cfg: dict) -> None:
 
 def cmd_daily(cfg: dict, use_ai: bool, deploy: bool) -> None:
     from trendbot.pipeline.edition import build_edition
+    from trendbot.collectors import media
     db = storage.connect()
+    media.prune()
     edition = build_edition(db, cfg, use_ai=use_ai)
     storage.save_edition(db, edition)
     print(f"오늘의 필수 {len(edition['cards'])}건, 채널 1위 {sum(1 for c in edition['champions'] if c['post'])}줄")

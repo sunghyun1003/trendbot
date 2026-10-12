@@ -63,6 +63,30 @@ def attach_originals(posts: list[dict], cfg: dict) -> None:
             p["original"] = got.get(p["url"], {"status": "error", "body": "", "images": [], "comments": []})
 
 
+def attach_media(posts: list[dict], cfg: dict, day: str, capture: bool = True, max_images: int = 8) -> None:
+    """원문 이미지를 내려받아 저장하고, 필요하면 본문을 캡처함 (집 PC). 실패해도 발행은 계속."""
+    from trendbot.collectors import media
+
+    srcs = sources_by_id(cfg)
+    for p in posts:
+        o = p.get("original")
+        if not o or o.get("status") != "ok":
+            continue
+        src = srcs.get(p["source_id"], {})
+        try:
+            o["saved"] = media.download_images(o.get("images", [])[:max_images], p["url"], day)
+        except Exception:
+            o["saved"] = []
+        if capture and not o.get("capture") and media.needs_capture(o, o["saved"], src):
+            try:
+                profile = None
+                if src.get("kind") == "naver_cafe":
+                    from trendbot.collectors.naver_cafe import PROFILE_DIR as profile
+                o["capture"] = media.capture_body(p["url"], (src.get("detail") or {}).get("body"), day, profile)
+            except Exception as e:
+                o["capture_error"] = e.__class__.__name__
+
+
 def _card(c: Candidate, subs: list[Candidate], cfg: dict, fetch_context: bool) -> dict:
     srcs = sources_by_id(cfg)
     posts = sorted(c.story.posts, key=lambda i: (i.data.get("first_seen") or ""))
@@ -101,7 +125,7 @@ def _card(c: Candidate, subs: list[Candidate], cfg: dict, fetch_context: bool) -
 
 
 def build_edition(db: sqlite3.Connection, cfg: dict, date: str | None = None, use_ai: bool = True,
-                  fetch_context: bool = True) -> dict:
+                  fetch_context: bool = True, fetch_media: bool = True) -> dict:
     now = datetime.now().astimezone()
     date = date or now.date().isoformat()
     since = (now - timedelta(hours=cfg["grading"]["window_hours"])).isoformat()
@@ -114,6 +138,8 @@ def build_edition(db: sqlite3.Connection, cfg: dict, date: str | None = None, us
     groups = select(stories, cfg, published)
 
     cards = [_card(c, subs, cfg, fetch_context) for c, subs in groups[:30]]
+    if fetch_context and fetch_media:
+        attach_media([c["posts"][0] for c in cards if c["posts"]], cfg, date, capture=False, max_images=3)
     results, ai_error = editor.edit(cards) if use_ai else ({}, "AI 사용 안 함")
     cards = [editor.apply(c, results.get(c["id"])) for c in cards]
     excluded = [c for c in cards if c["exclude"] != "없음"]
@@ -142,6 +168,9 @@ def build_edition(db: sqlite3.Connection, cfg: dict, date: str | None = None, us
             ch["post"] = {**ch["post"], "source_name": srcs[ch["source_id"]]["name"]}
     if fetch_context:
         attach_originals([ch["post"] for ch in champs if ch["post"] and not ch.get("in_card")], cfg)
+    if fetch_context and fetch_media:  # 최종 발행되는 글만 이미지 전체 저장·캡처
+        attach_media([p for c in final for p in c["posts"][:2]]
+                     + [ch["post"] for ch in champs if ch["post"] and not ch.get("in_card")], cfg, date)
 
     # 유튜브 1위 (검색 발견 기준)
     yt = [s for s in signals if s["kind"] == "youtube"]

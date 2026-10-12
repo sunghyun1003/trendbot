@@ -20,6 +20,9 @@ from trendbot.collectors.numbers import parse_count
 MAX_BODY = 4000
 MAX_IMAGES = 8
 MAX_COMMENTS = 5
+# 진짜 이미지 주소가 들어 있는 속성 (지연 로딩·원본 주소 우선)
+IMG_ATTRS = ("img_file_url", "data-original", "data-src", "data-lazy-src", "src")
+PLACEHOLDER_HINTS = ("loading", "emoticon", "icon", "blank", "spacer", "transparent", "1x1")
 LOGIN_HINTS = ("로그인이 필요", "로그인 후", "회원만", "멤버만", "권한이 없")
 
 
@@ -88,16 +91,19 @@ def parse_original(html: str, url: str, detail: dict | None = None) -> dict:
     # 대신 사이트가 공개한 미리보기(og:description, og:image)만 씀.
 
     images: list[str] = []
+    has_media = False
     if body_el is not None:
         for img in body_el.find_all("img"):
-            src = img.get("data-original") or img.get("data-src") or img.get("src")
-            if not src or src.startswith("data:") or any(k in src for k in ("emoticon", "icon", "blank", "spacer")):
+            src = next((img.get(a) for a in IMG_ATTRS if img.get(a)), None)
+            if not src or src.startswith("data:") or any(k in src.lower() for k in PLACEHOLDER_HINTS):
                 continue
             full = urljoin(url, src)
             if full not in images:
                 images.append(full)
             if len(images) >= MAX_IMAGES:
                 break
+        # 영상·움짤·외부 삽입이 있으면 이미지 주소만으로는 원문을 다 못 보여 줌 → 캡처 대상
+        has_media = bool(body_el.find(["video", "iframe", "embed", "object"]))
     body = _text(body_el) if body_el is not None else ""
     if not images and _meta(soup, "og:image"):
         images = [urljoin(url, _meta(soup, "og:image"))]
@@ -106,7 +112,7 @@ def parse_original(html: str, url: str, detail: dict | None = None) -> dict:
     page_text = soup.get_text(" ", strip=True)[:3000]
     status = "ok" if body or images else ("login" if any(h in page_text for h in LOGIN_HINTS) else "empty")
     return {"status": status, "body": body[:MAX_BODY], "truncated": len(body) > MAX_BODY,
-            "images": images, "comments": comments}
+            "images": images, "comments": comments, "has_media": has_media}
 
 
 def fetch_original(url: str, source: dict | None) -> dict:

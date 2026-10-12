@@ -34,8 +34,15 @@
       {% endif %}
 
       {% if o.status == 'ok' %}
-        {% if o.body %}<div class="o-body">{{ o.body }}</div>{% if o.truncated %}<p class="o-cut">… 이어지는 내용은 원문에서</p>{% endif %}{% endif %}
-        {% for img in o.images %}<img class="o-img" src="{{ img }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">{% endfor %}
+        {% if o.capture %}
+          <div class="o-cap"><span class="cap-k">원문 캡처</span>{% for f in o.capture %}<img src="{{ root }}{{ f }}" alt="원문 화면 {{ loop.index }}" loading="lazy">{% endfor %}</div>
+          {% if o.body %}<details class="o-txt"><summary>글자로 보기</summary><div class="o-body">{{ o.body }}</div></details>{% endif %}
+        {% else %}
+          {% if o.body %}<div class="o-body">{{ o.body }}</div>{% if o.truncated %}<p class="o-cut">… 이어지는 내용은 원문에서</p>{% endif %}{% endif %}
+          {% if o.saved %}{% for m in o.saved %}<img class="o-img" src="{{ root }}{{ m.file }}" alt="" loading="lazy">{% endfor %}
+          {% else %}{% for img in o.images %}<img class="o-img" src="{{ img }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">{% endfor %}{% endif %}
+          {% if o.has_media %}<p class="o-cut">영상·움짤이 있는 글이에요. 원문에서 재생해 주세요.</p>{% endif %}
+        {% endif %}
       {% else %}
         <div class="o-miss">{{ icon('out') }}<b>{{ NOTE.get(o.status, '원문은 원래 사이트에서 볼 수 있어요') }}</b></div>
       {% endif %}

@@ -133,7 +133,7 @@ sources:
       likes: "td.board_date!1"
       comments: "span.list_comment2"
     detail:
-      body: "td.han"
+      body: "td.han, td.board-contents"
       comment: "div.hot_comment_list a"
       comment_strip: ["b", "img"]
       comment_trailing_votes: true
@@ -154,7 +154,7 @@ sources:
       likes: "td.baseList-rec"
       comments: "span.baseList-c"
     detail:
-      body: "td.han"
+      body: "td.han, td.board-contents"
   - id: clien
     name: 클리앙 추천글
     pod: P3

@@ -10,3 +10,4 @@ public/
 node_modules/
 public_live/
 data/live*
+data/media/
