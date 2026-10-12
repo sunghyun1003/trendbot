@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from datetime import date as Date
 from pathlib import Path
@@ -31,9 +32,30 @@ def _date_label(d: str) -> str:
     return f"{dt.month}월 {dt.day}일({WEEKDAYS[dt.weekday()]})"
 
 
+SHORT = {"디시": ("디시", "디시"), "웃긴대학": ("웃대", "웃대"), "루리웹": ("루리", "루리웹"), "디젤매니아": ("디젤", "디젤매니아"),
+         "뽐뿌 핫딜": ("핫딜", "뽐뿌핫딜"), "뽐뿌": ("뽐뿌", "뽐뿌"), "클리앙": ("클량", "클리앙"), "보배드림": ("보배", "보배드림"),
+         "인스티즈": ("인티", "인스티즈"), "더쿠": ("더쿠", "더쿠"), "네이트판": ("판", "네이트판"), "82쿡": ("82", "82쿡"),
+         "유튜브": ("YT", "유튜브"), "에펨": ("펨코", "에펨")}
+
+
+def _short(name: str, i: int) -> str:
+    for k, v in SHORT.items():
+        if name.startswith(k):
+            return v[i]
+    return name[:2] if i == 0 else name[:5]
+
+
+def _ytid(url: str | None) -> str | None:
+    m = re.search(r"(?:v=|youtu\.be/|shorts/)([\w-]{11})", url or "")
+    return m.group(1) if m else None
+
+
 def _env() -> Environment:
     env = Environment(loader=FileSystemLoader(HERE / "templates"), autoescape=select_autoescape(["html"]))
     env.filters["num"] = _num
+    env.filters["short"] = lambda n: _short(n, 0)
+    env.filters["short_label"] = lambda n: _short(n, 1)
+    env.filters["ytid"] = _ytid
     return env
 
 
@@ -46,6 +68,8 @@ def build(editions: list[dict], health: list[dict], out: Path = OUT) -> Path:
     env = _env()
     for e in editions:
         e["date_label"] = _date_label(e["date"])
+        for c in e["cards"]:
+            c["top"] = max(c["posts"], key=lambda p: p.get("views") or 0) if c["posts"] else None
 
     day = env.get_template("day.html")
     for e in editions:
@@ -64,6 +88,7 @@ def build(editions: list[dict], health: list[dict], out: Path = OUT) -> Path:
                 "views": max([p.get("views") or 0 for p in c["posts"]] or [0]),
                 "comments": max([p.get("comments") or 0 for p in c["posts"]] or [0]),
                 "titles": " ".join(p["title"] for p in c["posts"]),
+                "vid": _ytid(c["videos"][0]["url"]) if c.get("videos") else None,
             })
     fields = sorted({r["field"] for r in rows})
     rows_json = json.dumps(rows, ensure_ascii=False).replace("</", "<\\/")

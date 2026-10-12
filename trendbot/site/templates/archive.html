@@ -1,39 +1,50 @@
 {% extends "base.html" %}
-{% block title %}아카이브 · 트렌드 아카이브{% endblock %}
+{% block title %}ㄷㅅㅂㄱ · 지난 판{% endblock %}
 {% block body %}
-<header class="day"><h1>아카이브</h1><div class="meta">지난 판 {{ editions|length }}개 · 카드 {{ rows|length }}장</div></header>
-<div class="dates">{% for e in editions %}<a href="{{ root }}d/{{ e.date }}.html">{{ e.date }}{% if e.sample %} (견본){% endif %}</a>{% endfor %}</div>
-<h2 class="sec">모든 카드</h2>
-<div class="filters">
-  <input id="q" placeholder="검색">
-  <select id="ff"><option value="">분야 전체</option>{% for f in fields %}<option>{{ f }}</option>{% endfor %}</select>
-  <select id="fg"><option value="">등급 전체</option><option value="A">전국구</option><option value="B">급부상</option><option value="M">단일채널 폭발</option></select>
+<div class="wide-col">
+  <section class="profile">
+    <img class="profile-i" src="{{ root }}static/logo.svg" alt="">
+    <div>
+      <h1>지난 판</h1>
+      <div class="profile-n"><span><b>{{ editions|length }}</b> 판</span><span><b>{{ rows|length }}</b> 이야기</span><span><b>{{ rows|selectattr('grade','equalto','A')|list|length }}</b> 전국구</span></div>
+    </div>
+  </section>
+
+  <div class="dates">{% for e in editions %}<a href="{{ root }}d/{{ e.date }}.html">{{ e.date[5:]|replace('-','.') }}{% if e.sample %}<i>견본</i>{% endif %}</a>{% endfor %}</div>
+
+  <div class="tools">
+    <input id="q" type="search" placeholder="키워드로 찾기">
+    <select id="sort">
+      <option value="date">최신순</option><option value="score">필수점수순</option><option value="pods">확산순</option>
+      <option value="views">조회순</option><option value="comments">댓글순</option>
+    </select>
+  </div>
+  <div class="chips" id="chips">
+    <button class="on" data-g="">전체</button><button data-g="A">전국구</button><button data-g="B">급부상</button><button data-g="M">단일채널 폭발</button>
+    {% for f in fields %}<button data-f="{{ f }}">{{ f }}</button>{% endfor %}
+  </div>
+  <div class="grid" id="grid"></div>
+  <p class="hint">조회·댓글 수는 사이트마다 규모가 달라 참고용이에요. 확산순은 '몇 개 독자층에 퍼졌나' 기준이에요.</p>
 </div>
-<div class="arch-wrap">
-<table class="arch" id="t">
-  <thead><tr>
-    <th data-k="date">날짜</th><th data-k="headline">이야기</th><th data-k="field">분야</th>
-    <th data-k="score" data-num>필수점수</th><th data-k="pods" data-num>확산(포드)</th><th data-k="sites" data-num>사이트</th>
-    <th data-k="views" data-num>최대 조회</th><th data-k="comments" data-num>최대 댓글</th>
-  </tr></thead>
-  <tbody></tbody>
-</table>
-</div>
-<p class="meta" style="margin-top:10px">열 제목을 누르면 정렬됩니다. 조회·댓글 수는 사이트마다 규모가 달라서 같은 채널끼리 비교할 때만 의미가 있습니다.</p>
 {% endblock %}
 {% block script %}
 <script>
-const ROWS = {{ rows_json|safe }};
-const GL = {A:'전국구',B:'급부상',M:'단일채널 폭발'};
-let key='date', asc=false;
+const ROWS={{ rows_json|safe }}, GL={A:'전국구',B:'급부상',M:'단일채널 폭발'};
+let g='', f='';
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function render(){
-  const q=document.getElementById('q').value.trim(), f=document.getElementById('ff').value, g=document.getElementById('fg').value;
-  let rs=ROWS.filter(r=>(!q||r.headline.includes(q)||r.titles.includes(q))&&(!f||r.field===f)&&(!g||r.grade===g));
-  rs.sort((a,b)=>{const x=a[key],y=b[key]; return (x>y?1:x<y?-1:0)*(asc?1:-1);});
-  document.querySelector('#t tbody').innerHTML=rs.map(r=>`<tr><td class="n"><a href="{{ root }}d/${r.date}.html#c-${r.id}">${r.date}</a></td><td>${r.headline}<div class="meta">${GL[r.grade]||''}</div></td><td>${r.field}</td><td class="n">${r.score}</td><td class="n">${r.pods}</td><td class="n">${r.sites}</td><td class="n">${r.views.toLocaleString()}</td><td class="n">${r.comments.toLocaleString()}</td></tr>`).join('');
+  const q=document.getElementById('q').value.trim(), k=document.getElementById('sort').value;
+  const rs=ROWS.filter(r=>(!q||r.headline.includes(q)||r.titles.includes(q))&&(!g||r.grade===g)&&(!f||r.field===f))
+    .sort((a,b)=>(b[k]>a[k]?1:b[k]<a[k]?-1:0));
+  document.getElementById('grid').innerHTML = rs.length ? rs.map(r=>`<a class="tile" data-f="${esc(r.field)}" href="{{ root }}d/${r.date}.html#c-${r.id}">
+    ${r.vid?`<img src="https://i.ytimg.com/vi/${r.vid}/mqdefault.jpg" alt="" loading="lazy">`:''}
+    <span class="tile-g">${GL[r.grade]||''}</span><span class="tile-t">${esc(r.headline)}</span>
+    <span class="tile-m">${r.date.slice(5).replace('-','.')} · ${r.pods}곳</span></a>`).join('') : '<p class="hint">조건에 맞는 이야기가 없어요.</p>';
 }
-document.querySelectorAll('#t th').forEach(th=>th.addEventListener('click',()=>{const k=th.dataset.k; asc = key===k ? !asc : false; key=k; render();}));
-['q','ff','fg'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+document.getElementById('chips').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#chips button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  g=b.dataset.g||''; f=b.dataset.f||''; render();});
+['q','sort'].forEach(id=>document.getElementById(id).addEventListener('input',render));
 render();
 </script>
 {% endblock %}

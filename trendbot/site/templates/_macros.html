@@ -1,0 +1,32 @@
+{% macro logo(cls='') -%}
+<svg class="logo {{ cls }}" viewBox="0 0 124 28" role="img" aria-label="ㄷㅅㅂㄱ">
+  <g fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 4 H3 V24 H21"/>
+    <path d="M40 4 L31 24 M35.5 14 L49 24"/>
+    <path d="M59 4 V24 H77 V4 M59 14 H77"/>
+    <path d="M87 4 H105 V24"/>
+  </g>
+  <circle class="rec" cx="116" cy="7" r="4.5"/>
+</svg>
+{%- endmacro %}
+
+{% macro icon(name) -%}
+{% if name == 'heart' %}<svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-9.2-9.3C1.6 7.8 3.9 4.5 7.3 4.5c2 0 3.6 1.1 4.7 2.7 1.1-1.6 2.7-2.7 4.7-2.7 3.4 0 5.7 3.3 4.5 6.7-1.7 4.7-9.2 9.3-9.2 9.3z"/></svg>
+{% elif name == 'x' %}<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+{% elif name == 'save' %}<svg viewBox="0 0 24 24"><path d="M6 3.5h12v17l-6-4.2-6 4.2z"/></svg>
+{% elif name == 'link' %}<svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+{% elif name == 'home' %}<svg viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V20h-5v-6H9v6H4z"/></svg>
+{% elif name == 'grid' %}<svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>
+{% elif name == 'pulse' %}<svg viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>
+{% elif name == 'play' %}<svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></svg>
+{% endif %}
+{%- endmacro %}
+
+{% macro podmap(pods) -%}
+<div class="podmap" title="어느 독자층에 퍼졌나">
+  {% for row, cells in [('남', ['P1','P2','P3']), ('여', ['P4','P5','P6'])] %}
+  <span class="pm-row"><span class="pm-l">{{ row }}</span>{% for p in cells %}<i class="{{ 'on' if p in pods }}"></i>{% endfor %}</span>
+  {% endfor %}
+  {% if 'P7' in pods or 'P8' in pods %}<span class="pm-row"><span class="pm-l">영상</span><i class="on"></i></span>{% endif %}
+</div>
+{%- endmacro %}
