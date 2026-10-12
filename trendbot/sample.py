@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import copy
+
 
 def _post(src_id: str, name: str, title: str, views=None, likes=None, comments=None) -> dict:
     return {"source_id": src_id, "source_name": name, "title": title, "url": "#", "views": views, "likes": likes,
@@ -55,6 +57,23 @@ def sample_editions() -> list[dict]:
               [_post("natepann", "네이트판", "[견본] 주차 문제로 이웃과 갈등 후기", 120000, 900, 1500)],
               48, ["P3", "P6"], 3, context="제목만", caution=True),
     ]
+    img = lambda a, b: ("data:image/svg+xml;utf8," + f"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'>"
+                         f"<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='{a}'/>"
+                         f"<stop offset='1' stop-color='{b}'/></linearGradient></defs><rect width='800' height='600' fill='url(%23g)'/>"
+                         "<text x='400' y='318' font-size='40' text-anchor='middle' fill='white' font-family='sans-serif'>견본 이미지</text></svg>").replace("#", "%23")
+    bodies = {
+        0: ("[견본] 오늘 아침 편의점 세 군데 돌았는데 전부 품절이었음\n\n점원분 말로는 들어오자마자 10분 만에 다 나간대요.\n"
+            "다들 어디서 구하셨어요? 저녁 입고 시간 아시는 분 공유 좀...", [img("%23ffd36b", "%23ff9a62")],
+            [{"text": "[견본] 저녁 8시쯤 입고되는 곳이 많아요", "likes": 412}, {"text": "[견본] 이거 먹어보니까 왜 난리인지 알겠음", "likes": 230},
+             {"text": "[견본] 재고 앱으로 확인하면 편해요", "likes": 118}]),
+        1: ("[견본] 출근길 지하철에서 들은 안내방송 패러디가 계속 생각나서 올립니다.\n\n'이번 역은 월요일, 월요일역입니다. 내리실 문은 없습니다.'",
+            [], [{"text": "[견본] 내리실 문은 없습니다 ㅋㅋㅋㅋ", "likes": 980}, {"text": "[견본] 목소리 지원 버전도 있음", "likes": 301}]),
+    }
+    for i, (body, imgs, cms) in bodies.items():
+        cards[i]["posts"][0]["original"] = {"status": "ok", "body": body, "images": imgs, "comments": cms}
+    cards[2]["posts"][0]["original"] = {"status": "login", "body": "", "images": [], "comments": []}
+    cards[0]["posts"][1]["original"] = {"status": "ok", "body": "[견본] 세 군데 다 품절. 재입고 알림 신청했습니다.", "images": [], "comments": []}
+
     champs = [
         {"source_id": "dieselmania", "name": "디젤매니아", "post": cards[2]["posts"][0], "in_card": 3, "strength": "강함"},
         {"source_id": "ppomppu_hot", "name": "뽐뿌 HOT", "post": cards[2]["posts"][1], "in_card": 3, "strength": "강함"},
@@ -79,6 +98,6 @@ def sample_editions() -> list[dict]:
         "ai": {"used": True, "model": "claude-opus-5-5", "note": None}, "sample": True,
     }
     yesterday = {**today, "date": "2026-10-12", "generated_at": "2026-10-12T07:30:00+09:00",
-                 "cards": cards[1:3], "mood": "조용한 날", "overflow": [], "excluded": [],
-                 "champions": [{**c, "in_card": None} for c in champs]}
+                 "cards": copy.deepcopy(cards[1:3]), "mood": "조용한 날", "overflow": [], "excluded": [],
+                 "champions": [{**copy.deepcopy(c), "in_card": None} for c in champs]}
     return [today, yesterday]

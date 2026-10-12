@@ -19,14 +19,10 @@
 
   <section class="stories" aria-label="채널 1위">
     {% for ch in e.champions if ch.post %}
-    <button class="story {{ 's-hot' if ch.strength in ('강함','역대급') }} {{ 's-max' if ch.strength=='역대급' }}"
-      data-name="{{ ch.name }}" data-title="{{ ch.post.title }}" data-url="{{ ch.post.url }}"
-      data-views="{{ ch.post.views|num if ch.post.views else '' }}" data-comments="{{ ch.post.comments|num if ch.post.comments else '' }}"
-      data-likes="{{ ch.post.likes|num if ch.post.likes else '' }}" data-strength="{{ ch.strength or '' }}"
-      data-card="{{ e.cards[ch.in_card-1].id if ch.in_card and ch.in_card <= e.cards|length else '' }}">
+    <a class="story {{ 's-hot' if ch.strength in ('강함','역대급') }} {{ 's-max' if ch.strength=='역대급' }}" href="{{ root }}{{ ch.href }}">
       <span class="ring"><span class="bubble">{{ ch.name|short }}</span></span>
       <span class="story-l">{{ ch.name|short_label }}</span>
-    </button>
+    </a>
     {% endfor %}
   </section>
 
@@ -36,7 +32,10 @@
   {% set vid = (c.videos[0].url|ytid) if c.videos else None %}
   {% set top = c.top %}
   <article class="post" id="c-{{ c.id }}" data-card="{{ c.id }}">
-    <div class="cover {{ 'has-img' if vid }}" data-f="{{ c.field }}">
+    {% set rep = c.posts[0] if c.posts else None %}
+    {% set thumb = (rep.original.images[0] if rep and rep.original and rep.original.images else None) %}
+    <a class="cover {{ 'has-img' if vid or thumb }}" data-f="{{ c.field }}" href="{{ root }}{{ c.href }}">
+      {% if thumb and not vid %}<img src="{{ thumb }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.remove('has-img');this.remove()">{% endif %}
       {% if vid %}<img src="https://i.ytimg.com/vi/{{ vid }}/hqdefault.jpg" alt="" loading="lazy"><span class="play">{{ icon('play') }}</span>{% endif %}
       <div class="cv-top">
         <span class="grade g-{{ c.grade }}">{{ GL[c.grade] }}</span>
@@ -44,9 +43,9 @@
         {% if c.caution %}<span class="warn" title="주의">!</span>{% endif %}
         <span class="rank">{{ '%02d' % loop.index }}</span>
       </div>
-      <h2 class="cover-t">{{ c.headline }}</h2>
-      <div class="cv-bot">{{ podmap(c.pods) }}</div>
-    </div>
+      <h2 class="cover-t">{{ rep.title if rep else c.headline }}</h2>
+      <div class="cv-bot">{% if rep %}<span class="cv-src">{{ rep.source_name|short_label }}</span>{% endif %}{{ podmap(c.pods) }}</div>
+    </a>
 
     <div class="info">
       <div class="nums">
@@ -54,7 +53,7 @@
         {% if top and top.comments %}<span>{{ icon('chat') }}{{ top.comments|num }}</span>{% endif %}
         <span>{{ icon('users') }}{{ c.pods|length }}</span>
       </div>
-      <p class="why">{{ c.why }}</p>
+      <p class="why"><span class="sum-k">요약</span>{{ c.why }}</p>
       <div class="chips-s">
         <span>{{ c.field }}</span>{% for a in c.attributes if a != c.field %}<span>{{ a }}</span>{% endfor %}
         {% if c.marketer == '활용 기회' %}<span class="hi">활용 기회</span>{% elif c.marketer == '브랜드 주의' %}<span class="lo">브랜드 주의</span>{% endif %}
@@ -68,6 +67,7 @@
       <button class="act" data-act="star" aria-label="저장">{{ icon('save') }}</button>
       <span class="sp"></span>
       <button class="src-btn" aria-expanded="false">출처 {{ c.posts|length + c.videos|length }}{{ icon('chev') }}</button>
+      <a class="open-btn" href="{{ root }}{{ c.href }}">원문 보기</a>
     </div>
     <div class="reasons">
       {% for r in ['이미 앎','너무 마이너','중복','마케팅 무관'] %}<button data-reason="{{ r }}">{{ r }}</button>{% endfor %}
@@ -92,25 +92,15 @@
 </div>
 
 <aside class="rail">
-  <div class="rail-card">
-    <div class="rail-big"><b>{{ e.cards|length }}</b>{% if e.avg28 %}<span>평소 {{ e.avg28 }}</span>{% endif %}</div>
-    <div class="rail-g">
-      <div><b>{{ e.cards|selectattr('grade','equalto','A')|list|length }}</b><span>전국구</span></div>
-      <div><b>{{ e.cards|selectattr('grade','equalto','B')|list|length }}</b><span>급부상</span></div>
-      <div><b>{{ e.cards|selectattr('grade','equalto','M')|list|length }}</b><span>폭발</span></div>
-    </div>
+  <div class="rail-card champs">
+    <div class="rail-h">채널 1위</div>
+    {% for ch in e.champions if ch.post %}
+    <a class="ch" href="{{ root }}{{ ch.href }}"><span class="ch-b {{ 's-hot' if ch.strength in ('강함','역대급') }}">{{ ch.name|short }}</span><span class="ch-t">{{ ch.post.title }}</span>{% if ch.strength in ('강함','역대급') %}<i class="ch-s">{{ ch.strength }}</i>{% endif %}</a>
+    {% endfor %}
   </div>
 </aside>
 
 <button class="fab" id="fab" aria-label="놓친 것 제보">{{ icon('plus') }}</button>
-
-<dialog class="sheet" id="sheet">
-  <span class="grab"></span>
-  <div class="sheet-k" id="sh-name"></div>
-  <h3 id="sh-title"></h3>
-  <div class="sheet-m nums" id="sh-meta"></div>
-  <div class="sheet-a"><a id="sh-card" class="btn ghost">카드 보기</a><a id="sh-url" class="btn" target="_blank" rel="noopener">원문</a></div>
-</dialog>
 
 <dialog class="sheet" id="tip">
   <span class="grab"></span>
@@ -146,21 +136,11 @@ document.querySelectorAll('.post').forEach(el=>{
     else if(b.dataset.reason){s.reason=b.dataset.reason; send({card:id,action:'drop',reason:s.reason});}
     else return;
     save(); mark();});
-  el.querySelector('.cover').addEventListener('dblclick',()=>{const s=st[id]||(st[id]={}); s.act='keep'; save(); mark(); send({card:id,action:'keep'});
-    const h=document.createElement('span'); h.className='burst'; h.innerHTML=el.querySelector('[data-act=keep]').innerHTML; el.querySelector('.cover').appendChild(h); setTimeout(()=>h.remove(),700);});
 });
 document.querySelectorAll('.restore').forEach(b=>b.addEventListener('click',()=>{send({card:b.dataset.card,action:'restore'});b.textContent='✓';}));
-const sh=$('#sheet'), tip=$('#tip');
-[sh,tip].forEach(d=>d.addEventListener('click',e=>{if(e.target===d) d.close();}));
+const tip=$('#tip');
+[tip].forEach(d=>d.addEventListener('click',e=>{if(e.target===d) d.close();}));
 $('#fab').addEventListener('click',()=>{tip.showModal(); tip.querySelector('input').focus();});
 $('#missed').addEventListener('submit',ev=>{ev.preventDefault();const q=ev.target.q.value.trim(); if(!q) return; send({action:'missed',text:q}); ev.target.reset(); tip.close();});
-const eye=`{{ icon('eye')|replace('\n','') }}`, chat=`{{ icon('chat')|replace('\n','') }}`;
-document.querySelectorAll('.story').forEach(b=>b.addEventListener('click',()=>{
-  const d=b.dataset; $('#sh-name').textContent=d.name+(d.strength?' · '+d.strength:'');
-  $('#sh-title').textContent=d.title;
-  $('#sh-meta').innerHTML=[d.views&&`<span>${eye}${d.views}</span>`,d.comments&&`<span>${chat}${d.comments}</span>`].filter(Boolean).join('');
-  $('#sh-url').href=d.url;
-  const c=$('#sh-card'); c.style.display=d.card?'':'none'; c.href='#c-'+d.card; c.onclick=()=>sh.close();
-  b.classList.add('seen'); sh.showModal();}));
 </script>
 {% endblock %}

@@ -16,6 +16,7 @@ HERE = Path(__file__).parent
 OUT = ROOT / "public"
 FUNCTIONS_SRC = ROOT / "site_functions"
 WEEKDAYS = "월화수목금토일"
+ORIGINAL_KEEP_DAYS = 30  # 원문 본문을 보관하는 기간
 
 
 def _num(n) -> str:
@@ -66,14 +67,35 @@ def build(editions: list[dict], health: list[dict], out: Path = OUT) -> Path:
     (out / "d").mkdir(parents=True)
     shutil.copytree(HERE / "static", out / "static")
     env = _env()
+    newest = Date.fromisoformat(editions[0]["date"]) if editions else None
     for e in editions:
         e["date_label"] = _date_label(e["date"])
+        old = newest and (newest - Date.fromisoformat(e["date"])).days > ORIGINAL_KEEP_DAYS
         for c in e["cards"]:
             c["top"] = max(c["posts"], key=lambda p: p.get("views") or 0) if c["posts"] else None
+            c["href"] = f"d/{e['date']}/{c['id']}.html"
+        for ch in e["champions"]:
+            if ch.get("post"):
+                n = ch.get("in_card")
+                ch["href"] = e["cards"][n - 1]["href"] if n and n <= len(e["cards"]) else f"d/{e['date']}/ch-{ch['source_id']}.html"
+        if old:  # 오래된 판은 원문 본문을 지우고 링크만 남김
+            for p in [p for c in e["cards"] for p in c["posts"]] + [ch["post"] for ch in e["champions"] if ch.get("post")]:
+                p.pop("original", None)
 
     day = env.get_template("day.html")
     for e in editions:
         (out / "d" / f"{e['date']}.html").write_text(day.render(e=e, root="../", page="day"), encoding="utf-8")
+    detail = env.get_template("detail.html")
+    for e in editions:
+        (out / "d" / e["date"]).mkdir(exist_ok=True)
+        for c in e["cards"]:
+            (out / c["href"]).parent.mkdir(parents=True, exist_ok=True)
+            (out / c["href"]).write_text(detail.render(c=c, posts=c["posts"], back=f"../../d/{e['date']}.html#c-{c['id']}",
+                                                       root="../../", page="detail"), encoding="utf-8")
+        for ch in e["champions"]:
+            if ch.get("post") and ch["href"].endswith(f"ch-{ch['source_id']}.html"):
+                (out / ch["href"]).write_text(detail.render(c=None, ch_name=ch["name"], posts=[{**ch["post"], "source_name": ch["post"].get("source_name") or ch["name"]}],
+                                                            back=f"../../d/{e['date']}.html", root="../../", page="detail"), encoding="utf-8")
     if editions:
         (out / "index.html").write_text(day.render(e=editions[0], root="", page="today"), encoding="utf-8")
     else:

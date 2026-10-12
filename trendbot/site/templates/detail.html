@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, podmap %}
+{% block title %}{{ posts[0].title if posts else (c.headline if c else '') }} · ㄷㅅㅂㄱ{% endblock %}
+{% set GL = {'A': '전국구', 'B': '급부상', 'M': '단일채널 폭발'} %}
+{% set NOTE = {'login': '로그인해야 볼 수 있는 글이에요', 'blocked': '사이트가 미리보기를 막았어요', 'error': '원문을 불러오지 못했어요', 'empty': '본문을 찾지 못했어요'} %}
+{% block topleft %}<a class="back" href="{{ back }}" aria-label="뒤로">{{ icon('back') }}</a><span class="top-t">{{ GL[c.grade] if c else ch_name }}</span>{% endblock %}
+{% block body %}
+<div class="detail">
+  <div class="d-main">
+    <a class="pc-back" href="{{ back }}">{{ icon('back') }}<span>{{ GL[c.grade] if c else ch_name }}</span></a>
+    {% if posts|length > 1 %}
+    <div class="d-tabs" role="tablist">{% for p in posts %}<button role="tab" class="{{ 'on' if loop.first }}" data-i="{{ loop.index0 }}">{{ p.source_name|short_label }}</button>{% endfor %}</div>
+    {% endif %}
+
+    {% for p in posts %}
+    {% set o = p.original or {} %}
+    <article class="orig {{ 'on' if loop.first }}" data-i="{{ loop.index0 }}">
+      <header class="o-h">
+        <span class="o-src">{{ p.source_name|short }}</span>
+        <div class="o-who"><b>{{ p.source_name }}</b>
+          <span class="nums">{% if p.views %}<span>{{ icon('eye') }}{{ p.views|num }}</span>{% endif %}{% if p.likes %}<span>{{ icon('thumb') }}{{ p.likes|num }}</span>{% endif %}{% if p.comments %}<span>{{ icon('chat') }}{{ p.comments|num }}</span>{% endif %}</span>
+        </div>
+      </header>
+      <h1 class="o-t">{{ p.title }}</h1>
+
+      {% if c and loop.first %}
+      <details class="sum">
+        <summary><span class="sum-k">요약</span><span class="sum-w">{{ c.why }}</span></summary>
+        <div class="sum-b">
+          <div class="chips-s"><span>{{ c.field }}</span>{% for a in c.attributes if a != c.field %}<span>{{ a }}</span>{% endfor %}{% if c.marketer == '활용 기회' %}<span class="hi">활용 기회</span>{% elif c.marketer == '브랜드 주의' %}<span class="lo">브랜드 주의</span>{% endif %}</div>
+          {% if c.path|length > 1 %}<ol class="route">{% for r in c.path %}<li><b>{{ r.name|short_label }}</b><span>{{ r.at }}</span></li>{% endfor %}</ol>{% endif %}
+        </div>
+      </details>
+      {% endif %}
+
+      {% if o.status == 'ok' %}
+        {% if o.body %}<div class="o-body">{{ o.body }}</div>{% if o.truncated %}<p class="o-cut">… 이어지는 내용은 원문에서</p>{% endif %}{% endif %}
+        {% for img in o.images %}<img class="o-img" src="{{ img }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">{% endfor %}
+      {% else %}
+        <div class="o-miss">{{ icon('out') }}<b>{{ NOTE.get(o.status, '원문은 원래 사이트에서 볼 수 있어요') }}</b></div>
+      {% endif %}
+
+      <a class="btn o-go" href="{{ p.url }}" target="_blank" rel="noopener noreferrer">원문에서 보기 {{ icon('out') }}</a>
+
+      {% if o.comments %}
+      <section class="o-cm">
+        <h2>베스트 댓글</h2>
+        {% for cm in o.comments %}<div class="cm"><p>{{ cm.text }}</p>{% if cm.likes %}<span>{{ icon('thumb') }}{{ cm.likes|num }}</span>{% endif %}</div>{% endfor %}
+        <a class="cm-more" href="{{ p.url }}" target="_blank" rel="noopener noreferrer">댓글 전체는 원문에서 {{ icon('chev') }}</a>
+      </section>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+
+  {% if c %}
+  <aside class="d-side">
+    <div class="d-card">
+      <div class="d-k">{{ GL[c.grade] }}{% if 'NEW' in c.badges %} · NEW{% endif %}</div>
+      <h3>{{ c.headline }}</h3>
+      {{ podmap(c.pods) }}
+      <div class="d-stats"><div><b>{{ c.spread.sites }}</b><span>사이트</span></div><div><b>{{ c.pods|length }}</b><span>독자층</span></div>{% if c.spread.traffic %}<div><b>{{ c.spread.traffic|num }}+</b><span>검색</span></div>{% endif %}</div>
+    </div>
+    {% if c.videos %}
+    <div class="d-card"><div class="d-k">관련 영상</div>
+      {% for v in c.videos %}<a class="vid" href="{{ v.url }}" target="_blank" rel="noopener">{% if v.url|ytid %}<img src="https://i.ytimg.com/vi/{{ v.url|ytid }}/mqdefault.jpg" alt="" loading="lazy">{% endif %}<span>{{ v.title }}</span><small>{{ icon('eye') }}{{ v.views|num }}</small></a>{% endfor %}
+    </div>
+    {% endif %}
+  </aside>
+  {% endif %}
+</div>
+{% endblock %}
+{% block script %}
+<script>
+document.querySelectorAll('.d-tabs button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.d-tabs button,.orig').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); document.querySelector(`.orig[data-i="${b.dataset.i}"]`).classList.add('on'); window.scrollTo({top:0,behavior:'smooth'});}));
+</script>
+{% endblock %}

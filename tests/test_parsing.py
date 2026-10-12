@@ -44,3 +44,18 @@ def test_google_news_rss():
     xml = """<rss><channel><item><title>제목입니다 - 한겨레</title><link>https://g.ex/a</link>
     <source url="x">한겨레</source></item></channel></rss>"""
     assert parse_google_news(xml)[0].title == "제목입니다"
+
+
+def test_parse_original_generic_and_selectors():
+    from trendbot.collectors.original import parse_original
+    html = """<html><head><meta property="og:image" content="/og.jpg"></head><body><nav>메뉴 메뉴 메뉴</nav>
+    <div class="view"><p>첫 줄 본문입니다. 충분히 긴 본문이 필요해서 내용을 조금 더 적습니다.</p><p>둘째 줄입니다. 계속해서 본문을 이어 갑니다.</p>
+    <img src="/a.jpg"><img src="data:image/png;base64,xx"></div>
+    <ul><li class="c"><span class="t">좋은 댓글</span><em>12</em></li><li class="c"><span class="t">최고 댓글</span><em>99</em></li></ul></body></html>"""
+    o = parse_original(html, "https://ex.com/p/1", {"body": "div.view", "comment": "li.c", "comment_text": "span.t", "comment_likes": "em"})
+    assert o["status"] == "ok" and "둘째 줄" in o["body"] and o["images"] == ["https://ex.com/a.jpg"]
+    assert o["comments"][0] == {"text": "최고 댓글", "likes": 99}
+    g = parse_original(html, "https://ex.com/p/1")
+    assert "첫 줄 본문" in g["body"]
+    login = parse_original("<html><body>로그인이 필요합니다</body></html>", "https://ex.com/x")
+    assert login["status"] == "login"

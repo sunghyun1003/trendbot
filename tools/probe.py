@@ -13,6 +13,7 @@ from datetime import datetime
 
 from trendbot.collectors import html_list
 from trendbot.collectors.http import Blocked, polite_get, robots_allows
+from trendbot.collectors.original import parse_original
 from trendbot.config import DATA_DIR, ROOT
 
 FIX = ROOT / "tests" / "fixtures"
@@ -30,6 +31,13 @@ def _probe_html(src: dict) -> dict:
         if posts:
             p = posts[0]
             res["sample"] = f"{p.title[:30]} | 조회 {p.views} 추천 {p.likes} 댓글 {p.comments}"
+            try:  # 원문 페이지 1개도 저장해 본문·댓글 위치를 맞춤
+                post_html = polite_get(p.url, check_robots=False)
+                (FIX / f"{src['id']}_post.html").write_text(post_html, encoding="utf-8")
+                o = parse_original(post_html, p.url, src.get("detail"))
+                res["sample"] += f" / 원문: {o['status']}, 본문 {len(o['body'])}자, 이미지 {len(o['images'])}, 댓글 {len(o['comments'])}"
+            except Exception as e:
+                res["sample"] += f" / 원문 실패: {e.__class__.__name__}"
     except Blocked as e:
         res["fetch"] = f"차단: {e}"
     except Exception as e:

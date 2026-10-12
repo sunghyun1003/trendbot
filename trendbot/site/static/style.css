@@ -25,9 +25,9 @@ svg { display: block; flex: none; }
 :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 8px; }
 
 /* 로고 */
-.logo { height: 20px; width: auto; color: var(--t1); }
+.logo { height: 20px; width: 89px; color: var(--t1); }
 .logo .rec { fill: var(--rec); animation: rec 2.6s ease-in-out infinite; }
-.logo.mini { height: 14px; color: var(--t3); }
+.logo.mini { height: 14px; width: 62px; color: var(--t3); }
 @keyframes rec { 0%, 62%, 100% { opacity: 1 } 78% { opacity: .2 } }
 @media (prefers-reduced-motion: reduce) { .logo .rec { animation: none } }
 
@@ -269,7 +269,7 @@ svg { display: block; flex: none; }
   body { padding-bottom: 40px; }
   .tabbar { display: none; }
   .tabs-top { display: flex; }
-  .logo { height: 22px; }
+  .logo { height: 22px; width: 98px; }
   .fab { bottom: 32px; right: 32px; }
   .toast { bottom: 100px; }
   .hero { padding-top: 28px; }
@@ -287,4 +287,113 @@ svg { display: block; flex: none; }
   .rail-g div { background: var(--fill); border-radius: var(--r-sm); padding: 10px; display: flex; flex-direction: column; }
   .rail-g b { font-size: 20px; font-weight: 800; }
   .rail-g span { font-size: 11px; color: var(--t3); font-weight: 600; }
+}
+
+/* ── 원문 연결 ─────────────────────────── */
+.cover { cursor: pointer; }
+.cv-bot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cv-src { font-size: 12px; font-weight: 700; opacity: .7; }
+.sum-k { display: inline-block; font-size: 11px; font-weight: 700; color: var(--blue); background: color-mix(in srgb, var(--blue) 11%, transparent);
+  padding: 2px 7px; border-radius: 6px; margin-right: 6px; vertical-align: 1px; }
+.open-btn { font-size: 13px; font-weight: 700; color: var(--blue); padding: 8px 10px; border-radius: 10px; }
+.open-btn:hover { background: color-mix(in srgb, var(--blue) 8%, transparent); }
+.side { display: none; }
+
+/* 상세(원문) */
+.back { width: 40px; height: 40px; margin-left: -10px; display: grid; place-items: center; border-radius: 12px; }
+.back svg { width: 24px; height: 24px; fill: none; stroke: var(--t1); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.top-t { font-size: 16px; font-weight: 700; }
+.layout.is-detail { display: block; max-width: 1040px; }
+.detail { display: flex; gap: 24px; justify-content: center; }
+.d-main { width: 100%; max-width: 640px; }
+.d-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 12px; scrollbar-width: none; }
+.d-tabs button { flex: none; height: 36px; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--t2); background: var(--surface); box-shadow: var(--shadow); }
+.d-tabs button.on { background: var(--t1); color: var(--surface); }
+.orig { display: none; background: var(--surface); border-radius: var(--r-lg); padding: 22px 20px; box-shadow: var(--shadow); }
+.orig.on { display: block; }
+.o-h { display: flex; align-items: center; gap: 10px; }
+.o-src { width: 40px; height: 40px; border-radius: 50%; background: var(--fill); display: grid; place-items: center; font-size: 13px; font-weight: 800; letter-spacing: -0.04em; flex: none; }
+.o-who { display: flex; flex-direction: column; gap: 2px; }
+.o-who b { font-size: 14px; }
+.o-who .nums { gap: 10px; font-size: 12px; }
+.o-who .nums svg { width: 14px; height: 14px; }
+.o-t { font-size: 24px; line-height: 1.38; font-weight: 800; letter-spacing: -0.04em; margin: 16px 0 14px; }
+.sum { background: var(--fill); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 18px; }
+.sum summary { list-style: none; cursor: pointer; font-size: 14px; color: var(--t2); display: flex; align-items: baseline; }
+.sum summary::-webkit-details-marker { display: none; }
+.sum-w { flex: 1; }
+.sum:not([open]) .sum-w { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sum-b { margin-top: 10px; }
+.sum .route { margin: 10px 0 0; }
+.o-body { white-space: pre-wrap; font-size: 17px; line-height: 1.75; letter-spacing: -0.015em; color: var(--t1); }
+.o-cut { color: var(--t3); font-size: 14px; }
+.o-img { display: block; width: 100%; height: auto; border-radius: var(--r-md); margin: 14px 0 0; background: var(--fill); }
+.o-miss { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 36px 0 20px; color: var(--t3); font-size: 15px; }
+.o-miss svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.o-miss b { color: var(--t2); font-weight: 600; }
+.o-go { margin-top: 22px; gap: 4px; display: flex; align-items: center; justify-content: center; }
+.o-go svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.o-cm { margin-top: 26px; }
+.o-cm h2 { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
+.cm { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: .5px solid var(--line); }
+.cm p { flex: 1; margin: 0; font-size: 15px; line-height: 1.6; }
+.cm span { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; color: var(--t3); flex: none; padding-top: 3px; }
+.cm span svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.cm-more { display: flex; align-items: center; gap: 2px; justify-content: center; padding: 14px 0 0; font-size: 14px; font-weight: 600; color: var(--t3); }
+.cm-more svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; }
+.d-side { display: none; }
+.d-card { background: var(--surface); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--shadow); margin-bottom: 12px; }
+.d-k { font-size: 12px; font-weight: 700; color: var(--rec); margin-bottom: 6px; }
+.d-card h3 { margin: 0 0 14px; font-size: 18px; line-height: 1.4; letter-spacing: -0.03em; }
+.d-card .podmap { color: var(--t1); }
+.d-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.d-stats div { background: var(--fill); border-radius: var(--r-sm); padding: 10px; display: flex; flex-direction: column; }
+.d-stats b { font-size: 18px; font-weight: 800; }
+.d-stats span { font-size: 11px; color: var(--t3); font-weight: 600; }
+.vid { display: grid; grid-template-columns: 96px 1fr; gap: 4px 10px; align-items: start; padding: 6px 0; }
+.vid img { grid-row: span 2; width: 96px; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; }
+.vid span { font-size: 13px; font-weight: 600; line-height: 1.4; }
+.vid small { display: flex; gap: 3px; align-items: center; font-size: 12px; color: var(--t3); }
+.vid small svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+/* 채널 1위 목록 (PC 오른쪽) */
+.rail-h { font-size: 13px; color: var(--t3); font-weight: 700; margin-bottom: 6px; }
+.champs { margin-top: 0; }
+.ch { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-radius: 10px; }
+.ch:hover .ch-t { color: var(--t1); }
+.ch-b { width: 34px; height: 34px; flex: none; border-radius: 50%; background: var(--fill); display: grid; place-items: center; font-size: 11px; font-weight: 800; letter-spacing: -0.04em; }
+.ch-b.s-hot { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--rec); }
+.ch-t { flex: 1; min-width: 0; font-size: 13px; font-weight: 500; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ch-s { font-style: normal; font-size: 11px; font-weight: 700; color: var(--rec); flex: none; }
+
+@media (min-width: 760px) {
+  .orig { padding: 32px 36px; }
+  .o-t { font-size: 28px; }
+}
+/* PC: 왼쪽 메뉴 + 가운데 피드 + 오른쪽 요약 (인스타 데스크톱과 같은 뼈대) */
+@media (min-width: 1040px) {
+  .topbar { display: none; }
+  .side { display: flex; flex-direction: column; gap: 4px; position: fixed; top: 0; left: 0; bottom: 0; width: 220px; padding: 28px 14px; border-right: .5px solid var(--line); background: var(--bg); z-index: 15; }
+  .side-logo { padding: 6px 12px 28px; }
+  .side-logo .logo { height: 26px; width: 115px; }
+  .side a:not(.side-logo) { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 12px; font-size: 16px; font-weight: 600; color: var(--t2); transition: background .15s; }
+  .side a:not(.side-logo):hover { background: var(--fill2); }
+  .side a.on { color: var(--t1); font-weight: 800; }
+  .side svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linejoin: round; stroke-linecap: round; }
+  .side a.on svg { stroke-width: 2.4; }
+  .layout { padding-left: 236px; max-width: 1280px; }
+  .layout.is-detail { max-width: 1280px; padding-top: 28px; }
+  .feed-col .stories { display: none; }
+  .feed-col { max-width: 520px; }
+  .rail { margin-top: 28px; width: 300px; max-height: calc(100vh - 56px); overflow-y: auto; scrollbar-width: none; }
+  .detail { justify-content: flex-start; }
+  .d-side { display: block; width: 320px; flex: none; position: sticky; top: 28px; align-self: flex-start; }
+  .fab { right: 40px; bottom: 40px; }
+  .is-detail .back-row { display: none; }
+}
+.pc-back { display: none; }
+@media (min-width: 1040px) {
+  .pc-back { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 14px -8px; padding: 6px 12px 6px 6px; border-radius: 12px; font-size: 15px; font-weight: 700; }
+  .pc-back:hover { background: var(--fill2); }
+  .pc-back svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 }

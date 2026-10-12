@@ -126,3 +126,68 @@ def open_login_window() -> None:
 
 def dump_debug(payloads: list[Any]) -> str:
     return json.dumps(payloads, ensure_ascii=False)[:200000]
+
+
+def _find_key(obj: Any, key: str) -> Any:
+    if isinstance(obj, dict):
+        if key in obj:
+            return obj[key]
+        for v in obj.values():
+            r = _find_key(v, key)
+            if r is not None:
+                return r
+    elif isinstance(obj, list):
+        for v in obj:
+            r = _find_key(v, key)
+            if r is not None:
+                return r
+    return None
+
+
+def fetch_originals(urls: list[str]) -> dict[str, dict]:
+    """로그인된 전용 브라우저로 카페 글 본문·이미지·댓글을 읽음 (발행 카드의 글만)."""
+    from bs4 import BeautifulSoup
+    from playwright.sync_api import sync_playwright
+
+    from trendbot.collectors.original import MAX_COMMENTS, MAX_IMAGES, _text
+
+    out: dict[str, dict] = {}
+    if not urls:
+        return out
+    with sync_playwright() as pw:
+        ctx = pw.chromium.launch_persistent_context(str(PROFILE_DIR), headless=True, locale="ko-KR")
+        try:
+            page = ctx.new_page()
+            for url in urls:
+                payloads: list[Any] = []
+                handler = lambda r: payloads.append(r) if "apis.naver.com" in r.url else None
+                page.on("response", handler)
+                try:
+                    page.goto(url, wait_until="networkidle")
+                    page.wait_for_timeout(1500)
+                    data = []
+                    for r in payloads:
+                        try:
+                            data.append(r.json())
+                        except Exception:
+                            pass
+                    html = _find_key(data, "contentHtml") or ""
+                    if "nid.naver.com" in page.url:
+                        out[url] = {"status": "login", "body": "", "images": [], "comments": []}
+                        continue
+                    soup = BeautifulSoup(html, "html.parser")
+                    images = [i.get("src") for i in soup.find_all("img") if i.get("src", "").startswith("http")][:MAX_IMAGES]
+                    items = _find_key(data, "items") or []
+                    comments = [{"text": str(c.get("content", ""))[:300], "likes": c.get("likeCount")}
+                                for c in items if isinstance(c, dict) and c.get("content")]
+                    comments.sort(key=lambda c: -(c["likes"] or 0))
+                    body = _text(soup) if html else ""
+                    out[url] = {"status": "ok" if body or images else "empty", "body": body[:4000],
+                                "images": images, "comments": comments[:MAX_COMMENTS]}
+                except Exception as e:
+                    out[url] = {"status": "error", "body": "", "images": [], "comments": [], "note": e.__class__.__name__}
+                finally:
+                    page.remove_listener("response", handler)
+        finally:
+            ctx.close()
+    return out

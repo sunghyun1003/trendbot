@@ -5,10 +5,8 @@ from __future__ import annotations
 import sqlite3
 from datetime import datetime, timedelta
 
-from bs4 import BeautifulSoup
-
 from trendbot import storage
-from trendbot.collectors.http import Blocked, polite_get
+from trendbot.collectors.original import fetch_original
 from trendbot.config import sources_by_id
 from trendbot.models import now_iso
 from trendbot.pipeline import cluster as cl
@@ -47,15 +45,22 @@ def _age_label(c: Candidate, cfg: dict) -> str:
     return (", ".join(labels) + " 중심 (확산 기반 추정)") if labels else "추정 불가"
 
 
-def _snippet(url: str) -> str | None:
-    """대표 글의 요약(og:description)만 메모리에서 읽고 버림. 저장하지 않음."""
-    try:
-        soup = BeautifulSoup(polite_get(url), "html.parser")
-    except (Blocked, Exception):
-        return None
-    meta = soup.find("meta", property="og:description") or soup.find("meta", attrs={"name": "description"})
-    text = (meta.get("content") if meta else "") or ""
-    return text.strip()[:600] or None
+def attach_originals(posts: list[dict], cfg: dict) -> None:
+    """발행될 글에 원문(본문·이미지·베스트 댓글)을 붙임. 네이버 카페는 로그인된 브라우저로."""
+    srcs = sources_by_id(cfg)
+    cafe = [p for p in posts if srcs.get(p["source_id"], {}).get("kind") == "naver_cafe" and "original" not in p]
+    for p in posts:
+        if "original" in p or p in cafe:
+            continue
+        p["original"] = fetch_original(p["url"], srcs.get(p["source_id"]))
+    if cafe:
+        try:
+            from trendbot.collectors.naver_cafe import fetch_originals
+            got = fetch_originals([p["url"] for p in cafe])
+        except Exception as e:
+            got = {p["url"]: {"status": "error", "body": "", "images": [], "comments": [], "note": str(e)[:80]} for p in cafe}
+        for p in cafe:
+            p["original"] = got.get(p["url"], {"status": "error", "body": "", "images": [], "comments": []})
 
 
 def _card(c: Candidate, subs: list[Candidate], cfg: dict, fetch_context: bool) -> dict:
@@ -79,12 +84,9 @@ def _card(c: Candidate, subs: list[Candidate], cfg: dict, fetch_context: bool) -
         if i.kind == "trend":
             news += [n["title"] for n in i.data.get("extra", {}).get("news", []) if n.get("title")]
     hints = [srcs[p["source_id"]].get("field_hint") for p in post_rows if srcs[p["source_id"]].get("field_hint")]
-    snippets = []
     if fetch_context:
-        for p in post_rows[:2]:
-            s = _snippet(p["url"])
-            if s:
-                snippets.append(s)
+        attach_originals(post_rows[:2], cfg)
+    snippets = [p["original"]["body"][:600] for p in post_rows[:2] if p.get("original", {}).get("body")]
     return {
         "id": c.id, "grade": c.grade, "grade_label": c.badges[1] if c.badges[0] in ("NEW", "업데이트") else c.badges[0],
         "badges": c.badges, "score": c.score, "anchor": c.story.anchor,
@@ -133,9 +135,13 @@ def build_edition(db: sqlite3.Connection, cfg: dict, date: str | None = None, us
     shown = storage.shown_champion_urls(db, date)
     history = {s["id"]: storage.champion_scores(db, s["id"], date) for s in cfg["sources"]}
     champs = champions(posts, cfg, shown, history)
+    srcs = sources_by_id(cfg)
     for ch in champs:
         if ch["post"]:
             ch["in_card"] = in_card.get(ch["post"]["url"])
+            ch["post"] = {**ch["post"], "source_name": srcs[ch["source_id"]]["name"]}
+    if fetch_context:
+        attach_originals([ch["post"] for ch in champs if ch["post"] and not ch.get("in_card")], cfg)
 
     # 유튜브 1위 (검색 발견 기준)
     yt = [s for s in signals if s["kind"] == "youtube"]
