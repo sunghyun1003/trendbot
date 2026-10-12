@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import re
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup, Tag
@@ -29,13 +30,14 @@ def _text(el: Tag) -> str:
         p.insert_after("\n")
     lines = [ln.strip() for ln in el.get_text().splitlines()]
     out, blank = [], 0
-    for ln in lines:
+    for ln in lines:  # 문단 사이 빈 줄은 원문에 2줄 이상 비어 있을 때만 하나 남김
         if ln:
+            if blank >= 3 and out:
+                out.append("")
             out.append(ln)
             blank = 0
-        elif blank == 0 and out:
-            out.append("")
-            blank = 1
+        else:
+            blank += 1
     return "\n".join(out).strip()
 
 
@@ -64,18 +66,26 @@ def parse_original(html: str, url: str, detail: dict | None = None) -> dict:
     comments = []
     if detail.get("comment"):
         for c in soup.select(detail["comment"])[: MAX_COMMENTS * 3]:
-            t = c.select_one(detail.get("comment_text", "*"))
+            like = c.select_one(detail["comment_likes"]) if detail.get("comment_likes") else None
+            like_n = parse_count(like.get_text()) if like else None
+            for junk in detail.get("comment_strip", []):  # 닉네임 등 제거
+                for el in c.select(junk):
+                    el.decompose()
+            t = c.select_one(detail["comment_text"]) if detail.get("comment_text") else c
             if not t:
                 continue
             txt = t.get_text(" ", strip=True)
             if not txt:
                 continue
-            like = c.select_one(detail["comment_likes"]) if detail.get("comment_likes") else None
-            comments.append({"text": txt[:300], "likes": parse_count(like.get_text()) if like else None})
+            if detail.get("comment_trailing_votes"):  # 뽐뿌: 글 끝의 '추천 비추천' 숫자
+                m = re.search(r"\s(\d+)\s+\d+\s*$", txt)
+                if m:
+                    like_n, txt = int(m.group(1)), txt[: m.start()]
+            comments.append({"text": txt.lstrip("/ ").strip()[:300], "likes": like_n})
         comments.sort(key=lambda c: -(c["likes"] or 0))
         comments = comments[:MAX_COMMENTS]
-    if body_el is None:
-        body_el = _guess_body(soup)
+    # 본문 위치를 지정하지 않은 사이트는 추측하지 않음(댓글·닉네임 영역을 잘못 집을 수 있음).
+    # 대신 사이트가 공개한 미리보기(og:description, og:image)만 씀.
 
     images: list[str] = []
     if body_el is not None:

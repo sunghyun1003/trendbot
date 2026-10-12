@@ -78,3 +78,11 @@ def test_ai_cannot_drop_nationwide_for_soft_reasons():
     out = apply(dict(card), {"headline": "h", "why": "w", "field": "음식", "attributes": [], "marketer": "없음",
                              "context": "제목만", "exclude": "광고", "caution": False})
     assert out["exclude"] == "광고" and out["headline"] == "원제목"
+
+
+def test_board_urls_with_query_are_not_merged():
+    from trendbot.pipeline.cluster import link_key
+    a = link_key("https://www.ppomppu.co.kr/zboard/zboard.php?id=freeboard&no=1&page=1")
+    b = link_key("https://www.ppomppu.co.kr/zboard/zboard.php?id=freeboard&no=2&page=3")
+    assert a != b
+    assert link_key("https://youtu.be/abcdefghijk") == link_key("https://www.youtube.com/watch?v=abcdefghijk&t=3")

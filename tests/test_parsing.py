@@ -55,7 +55,27 @@ def test_parse_original_generic_and_selectors():
     o = parse_original(html, "https://ex.com/p/1", {"body": "div.view", "comment": "li.c", "comment_text": "span.t", "comment_likes": "em"})
     assert o["status"] == "ok" and "둘째 줄" in o["body"] and o["images"] == ["https://ex.com/a.jpg"]
     assert o["comments"][0] == {"text": "최고 댓글", "likes": 99}
-    g = parse_original(html, "https://ex.com/p/1")
-    assert "첫 줄 본문" in g["body"]
+    g = parse_original(html.replace("<head>", '<head><meta property="og:description" content="미리보기 문장">'), "https://ex.com/p/1")
+    assert g["body"] == "미리보기 문장" and g["images"] == ["https://ex.com/og.jpg"] and g["comments"] == []
     login = parse_original("<html><body>로그인이 필요합니다</body></html>", "https://ex.com/x")
     assert login["status"] == "login"
+
+
+import pathlib
+import pytest
+
+FIX = pathlib.Path(__file__).parent / "fixtures"
+
+
+@pytest.mark.parametrize("sid", ["humoruniv", "ruliweb", "ppomppu_hot", "ppomppu_deal", "bobaedream"])
+def test_real_site_fixtures(sid):
+    """실제 화면 샘플로 목록·원문 읽기가 깨지지 않았는지 확인 (사이트 구조가 바뀌면 여기서 먼저 실패)."""
+    from trendbot.collectors.original import parse_original
+    from trendbot.config import load_config
+    src = {s["id"]: s for s in load_config()["sources"]}[sid]
+    posts = parse_list((FIX / f"{sid}.html").read_text(encoding="utf-8"), src)
+    assert len(posts) >= 15
+    assert sum(1 for p in posts if p.views) >= 15
+    assert all("javascript" not in p.url for p in posts)
+    o = parse_original((FIX / f"{sid}_post.html").read_text(encoding="utf-8"), posts[0].url, src.get("detail"))
+    assert o["status"] == "ok"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup, Tag
@@ -11,16 +12,21 @@ from trendbot.collectors.numbers import parse_count
 from trendbot.models import Post
 
 MAX_ROWS = 20
+AD_PATTERNS = [r"^AD\s", r"^\[?광고\]?", r"^\[?공지\]?"]
 
 
 def _select(row: Tag, spec: str) -> str | None:
-    """'css' → 글자, 'css@attr' → 속성값. 쉼표로 여러 후보를 줄 수 있음."""
+    """'css' → 글자, 'css@attr' → 속성값, 'css!2' → 세 번째로 맞는 요소. 쉼표로 여러 후보."""
     for candidate in spec.split(","):
         candidate = candidate.strip()
-        attr = None
+        attr, idx = None, 0
         if "@" in candidate:
             candidate, attr = candidate.rsplit("@", 1)
-        el = row.select_one(candidate) if candidate else row
+        if "!" in candidate:
+            candidate, n = candidate.rsplit("!", 1)
+            idx = int(n)
+        found = row.select(candidate) if candidate else [row]
+        el = found[idx] if len(found) > idx else None
         if el is None:
             continue
         if attr:
@@ -40,9 +46,16 @@ def parse_list(html: str, source: dict) -> list[Post]:
     posts: list[Post] = []
     seen_urls: set[str] = set()
     for row in soup.select(source["row"]):
-        title = _select(row, fields["title"])
         href = _select(row, fields["link"])
-        if not title or not href:
+        nums = {k: parse_count(_select(row, fields[k])) if k in fields else None for k in ("views", "likes", "comments")}
+        posted = _select(row, fields["posted"]) if "posted" in fields else None
+        for junk in source.get("strip", []):  # 제목 안에 섞인 댓글 수·아이콘 제거
+            for el in row.select(junk):
+                el.decompose()
+        title = _select(row, fields["title"])
+        if not title or not href or href.startswith("javascript"):
+            continue
+        if any(re.search(pat, title) for pat in source.get("title_exclude", AD_PATTERNS)):
             continue
         url = urljoin(source["url"], href)
         if url in seen_urls:
@@ -54,10 +67,7 @@ def parse_list(html: str, source: dict) -> list[Post]:
                 title=" ".join(title.split()),
                 url=url,
                 rank=len(posts) + 1,
-                views=parse_count(_select(row, fields["views"])) if "views" in fields else None,
-                likes=parse_count(_select(row, fields["likes"])) if "likes" in fields else None,
-                comments=parse_count(_select(row, fields["comments"])) if "comments" in fields else None,
-                posted_at=_select(row, fields["posted"]) if "posted" in fields else None,
+                views=nums["views"], likes=nums["likes"], comments=nums["comments"], posted_at=posted,
             )
         )
         if len(posts) >= MAX_ROWS:

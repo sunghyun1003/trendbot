@@ -53,7 +53,10 @@ def link_key(url: str) -> str:
     m = _YT.search(url or "")
     if m:
         return "yt:" + m.group(1)
-    return "url:" + re.sub(r"[?#].*$", "", (url or "").rstrip("/"))
+    # 게시판 주소는 글 번호가 물음표 뒤에 있으므로(zboard.php?no=123) 주소 전체를 비교함
+    u = re.sub(r"#.*$", "", url or "")
+    u = re.sub(r"([?&])(utm_[^=&]+|page|pg|_dcbest|m|vdate)=[^&]*", r"\1", u)
+    return "url:" + re.sub(r"[?&]+$", "", u.rstrip("/"))
 
 
 @dataclass

@@ -65,8 +65,18 @@ def polite_get(url: str, client: httpx.Client | None = None, check_robots: bool 
     if r.status_code in (403, 429, 503):
         raise Blocked(f"차단 응답 {r.status_code}: {url}")
     r.raise_for_status()
-    text = r.text
+    text = decode(r)
     lowered = text[:5000].lower()
     if any(m in lowered for m in ("captcha", "challenge-platform", "cf-chl", "are you a robot")):
         raise Blocked(f"봇 확인 화면이 나옴: {url}")
     return text
+
+
+def decode(r: httpx.Response) -> str:
+    """EUC-KR(cp949) 페이지도 글자가 깨지지 않게 읽음."""
+    import re
+    m = re.search(rb'charset=["\']?([\w-]+)', r.content[:4000], re.I)
+    declared = (m.group(1).decode().lower() if m else "") or (r.charset_encoding or "").lower()
+    if declared in ("euc-kr", "ks_c_5601-1987", "cp949", "ms949"):
+        return r.content.decode("cp949", errors="replace")
+    return r.text

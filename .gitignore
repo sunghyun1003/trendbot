@@ -8,3 +8,5 @@ public/
 .env
 .pytest_cache/
 node_modules/
+public_live/
+data/live*
