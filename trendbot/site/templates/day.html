@@ -26,7 +26,7 @@
     {% endfor %}
   </section>
 
-  {% if not e.cards %}<div class="empty"><b>조용한 하루</b>기준을 넘은 이야기가 없어요</div>{% endif %}
+  {% if not e.cards %}<div class="empty"><b>조용한 하루</b>기준을 넘은 이야기가 없어요. 채널 1위만 확인하세요</div>{% endif %}
 
   {% for c in e.cards %}
   {% set vid = (c.videos[0].url|ytid) if c.videos else None %}
@@ -86,6 +86,15 @@
   <section class="more-card">
     {% for o in e.overflow %}<div class="mini"><span class="tag">+</span>{{ o.headline }}</div>{% endfor %}
     {% for x in e.excluded %}<div class="mini dim"><span class="tag">AI 제외</span>{{ x.headline }}<button class="restore" data-card="{{ x.id }}" aria-label="되살리기">↺</button></div>{% endfor %}
+  </section>
+  {% endif %}
+
+  {% if e.champions|selectattr('post')|list %}
+  <section class="champ-list" aria-label="채널 1위">
+    <div class="rail-h">채널 1위</div>
+    {% for ch in e.champions if ch.post %}
+    <a class="ch" href="{{ root }}{{ ch.href }}"><span class="ch-b {{ 's-hot' if ch.strength in ('강함','역대급') }}">{{ ch.name|short }}</span><span class="ch-t">{{ ch.post.title }}</span>{% if ch.strength in ('강함','역대급') %}<i class="ch-s">{{ ch.strength }}</i>{% endif %}</a>
+    {% endfor %}
   </section>
   {% endif %}
 

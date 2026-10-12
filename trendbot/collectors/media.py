@@ -124,6 +124,7 @@ def capture_body(url: str, selector: str | None, day: str, profile_dir=None) -> 
     if not selector:
         raise CaptureFailed("본문 위치(detail.body)가 설정되지 않음")
     png = None
+    broken = False
     with sync_playwright() as pw:
         browser = None
         if not profile_dir:
@@ -148,6 +149,12 @@ def capture_body(url: str, selector: str | None, day: str, profile_dir=None) -> 
                 page.wait_for_timeout(800)
                 el = page.query_selector(selector)
                 if el and (el.bounding_box() or {}).get("height", 0) > 20:
+                    # 본문 사진이 하나도 안 떴으면 깨진 아이콘만 찍히므로 캡처하지 않음
+                    shown, total = el.evaluate("""e => { const im = [...e.querySelectorAll('img')].filter(i => i.complete);
+                        return [im.filter(i => i.naturalWidth > 0).length, im.length]; }""")
+                    if total and not shown:
+                        broken = True
+                        break
                     png = _shoot(page, el)
             finally:
                 ctx.close()
@@ -155,6 +162,8 @@ def capture_body(url: str, selector: str | None, day: str, profile_dir=None) -> 
                 break
         if browser:
             browser.close()
+    if broken:
+        raise CaptureFailed("본문 사진을 하나도 불러오지 못함")
     if not png:
         raise CaptureFailed(f"본문 영역을 찾지 못함: {selector}")
     return split_tiles(png, day, _name(url))
