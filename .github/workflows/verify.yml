@@ -1,8 +1,10 @@
-# 임시: run.yml 이 GitHub 서버에서 끝까지 도는지 확인용 (확인 후 삭제)
+# 임시: run.yml 이 GitHub 서버에서 끝까지 도는지 확인용 (확인 후 삭제) 2회차
 name: verify
 on:
   push:
     paths: [".github/workflows/verify.yml"]
+permissions:
+  contents: write
 jobs:
   publish:
     uses: ./.github/workflows/run.yml
