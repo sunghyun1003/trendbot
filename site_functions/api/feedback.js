@@ -40,11 +40,13 @@ export async function onRequestGet({ request, env }) {
   // 집 PC가 피드백을 가져갈 때 사용 (EXPORT_TOKEN 필요)
   const url = new URL(request.url);
   if (!env.EXPORT_TOKEN || url.searchParams.get("token") !== env.EXPORT_TOKEN) return new Response("forbidden", { status: 403 });
+  // since(예: 2026-10-12) 이후 기록만. 키가 저장 시각으로 시작하므로 문자열 비교로 거름
+  const since = url.searchParams.get("since") || "";
   const out = [];
   let cursor;
   do {
-    const page = await env.FEEDBACK.list({ cursor, prefix: url.searchParams.get("since") || "" });
-    for (const k of page.keys) out.push(JSON.parse(await env.FEEDBACK.get(k.name)));
+    const page = await env.FEEDBACK.list({ cursor });
+    for (const k of page.keys) if (k.name >= since) out.push(JSON.parse(await env.FEEDBACK.get(k.name)));
     cursor = page.list_complete ? undefined : page.cursor;
   } while (cursor);
   return Response.json(out);

@@ -128,7 +128,10 @@ def build(editions: list[dict], health: list[dict], out: Path = OUT) -> Path:
         encoding="utf-8")
     # 채널 페이지: 날짜별 종합 1위 기록 + 조회·댓글·좋아요별 1위
     cfg = load_config()
-    channels = [src for src in cfg["sources"] if src.get("enabled", True) and src.get("champion")]
+    # 지금 꺼진 채널도 지난 판에 1위로 나온 적이 있으면 기록 페이지를 만듦 (링크가 깨지지 않게)
+    seen = {c["source_id"] for e in editions for c in e["champions"]}
+    channels = [src for src in cfg["sources"]
+                if src.get("champion") and (src.get("enabled", True) or src["id"] in seen)]
     (out / "channel").mkdir(exist_ok=True)
     ch_tpl = env.get_template("channel.html")
     for src in channels:

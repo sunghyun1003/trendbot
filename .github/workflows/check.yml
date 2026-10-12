@@ -1,0 +1,25 @@
+# 코드를 올릴 때마다 자동 점검: 파이썬 테스트, 피드백 기능 테스트, 견본 사이트 화면 점검
+name: check
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: pip install -r requirements-dev.txt playwright
+      - run: python -m pytest -q
+      - run: node --test tests/functions/*.test.mjs
+      - run: python -m playwright install --with-deps chromium
+      - name: 견본 사이트 화면 점검 (깨진 링크·가로 넘침·스크립트 오류)
+        run: |
+          python -m trendbot sample
+          python tools/site_qa.py
