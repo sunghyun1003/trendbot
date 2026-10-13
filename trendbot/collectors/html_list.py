@@ -58,6 +58,8 @@ def parse_list(html: str, source: dict) -> list[Post]:
         if any(re.search(pat, title) for pat in source.get("title_exclude", AD_PATTERNS)):
             continue
         url = urljoin(source["url"], href)
+        if rw := source.get("link_rewrite"):  # 모아보기 사이트를 거칠 때 원래 글 주소로 바꿈
+            url = re.sub(rw["pattern"], rw["to"], url)
         if url in seen_urls:
             continue
         seen_urls.add(url)

@@ -83,3 +83,16 @@ def test_inven_open_issue():
     p = posts[1]
     assert p.title == "임은정 징계할거면" and p.views == 2623 and p.likes == 21 and p.comments == 12
     assert "[" not in posts[3].title and p.url.startswith("https://www.inven.co.kr/board/webzine/2097/")
+
+
+def test_fmkorea_via_issuelink_rewrites_to_original_links():
+    from pathlib import Path
+    from trendbot.collectors.html_list import parse_list
+    from trendbot.config import load_config
+    src = next(s for s in load_config()["sources"] if s["id"] == "fmkorea")
+    posts = parse_list((Path(__file__).parent / "fixtures" / "fmkorea_issuelink.html").read_text(encoding="utf-8"), src)
+    assert len(posts) == 20
+    p = posts[0]
+    assert p.url == "https://www.fmkorea.com/10441799708"
+    assert p.title == "아시안게임 군면제 관련 새로운 이슈.jpg" and p.views == 8419 and p.comments == 33
+    assert all(x.url.startswith("https://www.fmkorea.com/") for x in posts)

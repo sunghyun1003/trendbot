@@ -52,8 +52,10 @@ def attach_originals(posts: list[dict], cfg: dict) -> None:
     """발행될 글에 원문(본문·이미지·베스트 댓글)을 붙임."""
     srcs = sources_by_id(cfg)
     for p in posts:
-        if "original" not in p:
-            p["original"] = fetch_original(p["url"], srcs.get(p["source_id"]))
+        src = srcs.get(p["source_id"]) or {}
+        if "original" in p or src.get("original") is False:  # 원문을 못 여는 곳(보안 화면)은 시도하지 않음
+            continue
+        p["original"] = fetch_original(p["url"], src)
 
 
 def attach_media(posts: list[dict], cfg: dict, day: str, capture: bool = True, max_images: int = 8) -> None:

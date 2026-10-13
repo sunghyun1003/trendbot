@@ -92,18 +92,24 @@ sources:
     detail:
       body: "#powerbbsContent, div.articleContent"
   - id: fmkorea
-    name: 에펨코리아 포텐
-    pod: P1
-    champion: false
-    enabled: false          # 봇 차단이 강함 (우회하지 않음)
-    verified: false
-    url: https://www.fmkorea.com/best
-    row: "li.li"
+    name: 에펨코리아
+    pod: P1                 # 남 10~30대, 국내 최대 커뮤니티 중 하나
+    champion: true
+    enabled: true
+    verified: true          # 2026-10-13 확인
+    # 펨코 본 사이트는 robots.txt로 /best를 허용하지만, 서버 접속에 '사람 확인' 보안 화면(봇 차단)이 떠서
+    # 우회하지 않고, 공개 모아보기 사이트 '이슈링크'(robots.txt 전체 허용)의 펨코 3시간 조회순 목록을 읽습니다.
+    # 링크는 펨코 원문 주소로 바꿔 저장합니다. 원문 본문은 같은 보안 화면 때문에 가져오지 못하고 '원문에서 보기'만 됩니다.
+    url: https://www.issuelink.co.kr/community/listview/fmkorea/3/adj/_self/blank/blank/blank
+    row: "tr"
+    strip: ["span.title small"]
+    original: false         # 원문 본문은 가져오지 않음 (펨코 보안 화면)
+    link_rewrite: {pattern: "^https://www\\.issuelink\\.co\\.kr/community/go/fmkorea/(\\d+).*$", to: "https://www.fmkorea.com/\\1"}
     fields:
-      title: "h3.title a"
-      link: "h3.title a@href"
-      likes: "a.pc_voted_count span.count"
-      comments: "h3.title span.comment_count"
+      title: "span.title a"
+      link: "span.title a@href"
+      views: "span.hit"
+      comments: "span.title small"
 
   - id: ruliweb
     name: 루리웹 베스트
