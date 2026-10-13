@@ -161,8 +161,11 @@ FIELD_WORDS = {
 
 
 def guess_field(texts: list[str]) -> str:
+    import re
     text = " ".join(texts).lower()
-    scores = {f: sum(text.count(w) for w in ws) for f, ws in FIELD_WORDS.items()}
+    words = set(re.findall(r"[가-힣a-z0-9]+", text))
+    # 두 글자 이하 낱말('ai'·'롤'·'골')은 다른 말 속에 섞여 잘못 걸리므로 낱말 전체가 같을 때만 셈
+    scores = {f: sum((w in words) if len(w) <= 2 else text.count(w) for w in ws) for f, ws in FIELD_WORDS.items()}
     best = max(scores, key=scores.get)
     return best if scores[best] else "기타"
 

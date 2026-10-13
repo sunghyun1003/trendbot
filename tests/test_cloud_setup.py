@@ -75,7 +75,7 @@ def test_scheduler_worker_installed(env, monkeypatch):
     fake = FakeCF()
     lines = cloud_setup.run(client(fake, monkeypatch))
     w = fake.workers["dsbg-scheduler"]
-    assert [c["cron"] for c in w["schedules"]] == ["30 21 * * *", "7 */2 * * *"]
+    assert [c["cron"] for c in w["schedules"]] == ["30 21 * * *", "30 22 * * *", "7 */2 * * *"]
     assert b"github_pat_x" in w["upload"] and b"export default" in w["upload"]
     assert any(l.startswith("정시 실행기: 매일 06:30") for l in lines)
 

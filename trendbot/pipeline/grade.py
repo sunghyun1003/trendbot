@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from trendbot.pipeline.cluster import Story
 
 GRADE_ORDER = {"A": 0, "M": 1, "B": 2}
-GRADE_LABEL = {"A": "전국구", "B": "급부상", "M": "단일채널 폭발"}
+GRADE_LABEL = {"A": "전국 확산", "B": "확산 중", "M": "한 곳 대박"}
 
 
 @dataclass
@@ -126,8 +126,9 @@ def umbrella(cands: list[Candidate]) -> list[tuple[Candidate, list[Candidate]]]:
     for c in cands:
         for head, subs in groups:
             shared = c.story.toks & head.story.toks
+            small = min(len(c.story.toks), len(head.story.toks)) or 1
             if (c.story.anchor and c.story.anchor == head.story.anchor) or (
-                len(shared) >= 2 and len(shared) / max(len(c.story.toks), 1) >= 0.4
+                len(shared) >= 3 and len(shared) / small >= 0.25
             ):
                 if len(subs) < 3:
                     subs.append(c)

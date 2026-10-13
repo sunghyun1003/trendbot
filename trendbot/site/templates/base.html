@@ -18,7 +18,7 @@
     {% block topleft %}<a class="brand" href="{{ root }}index.html" aria-label="ㄷㅅㅂㄱ">{{ logo() }}</a>{% endblock %}
     <nav class="tabs-top">
       <a class="{{ 'on' if page in ('today','day') }}" href="{{ root }}index.html">오늘</a>
-      <a class="{{ 'on' if page=='archive' }}" href="{{ root }}archive.html">지난 판</a>
+      <a class="{{ 'on' if page=='archive' }}" href="{{ root }}archive.html">지난 피드</a>
       <a class="{{ 'on' if page=='status' }}" href="{{ root }}status.html">상태</a>
     </nav>
     {% block topright %}{% endblock %}
@@ -27,7 +27,7 @@
 <aside class="side">
   <a class="side-logo" href="{{ root }}index.html" aria-label="ㄷㅅㅂㄱ">{{ logo() }}</a>
   <a class="{{ 'on' if page in ('today','day') }}" href="{{ root }}index.html">{{ icon('home') }}<span>오늘</span></a>
-  <a class="{{ 'on' if page=='archive' }}" href="{{ root }}archive.html">{{ icon('grid') }}<span>지난 판</span></a>
+  <a class="{{ 'on' if page=='archive' }}" href="{{ root }}archive.html">{{ icon('grid') }}<span>지난 피드</span></a>
   <a class="{{ 'on' if page=='status' }}" href="{{ root }}status.html">{{ icon('pulse') }}<span>상태</span></a>
 </aside>
 <main class="layout {{ 'is-detail' if page=='detail' }}">
@@ -35,7 +35,7 @@
 </main>
 <nav class="tabbar">
   <a class="{{ 'on' if page in ('today','day') }}" href="{{ root }}index.html" aria-label="오늘">{{ icon('home') }}<span>오늘</span></a>
-  <a class="{{ 'on' if page=='archive' }}" href="{{ root }}archive.html" aria-label="지난 판">{{ icon('grid') }}<span>지난 판</span></a>
+  <a class="{{ 'on' if page=='archive' }}" href="{{ root }}archive.html" aria-label="지난 피드">{{ icon('grid') }}<span>지난 피드</span></a>
   <a class="{{ 'on' if page=='status' }}" href="{{ root }}status.html" aria-label="상태">{{ icon('pulse') }}<span>상태</span></a>
 </nav>
 <div class="toast" id="toast"></div>

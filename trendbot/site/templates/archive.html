@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon %}
-{% block title %}ㄷㅅㅂㄱ · 지난 판{% endblock %}
+{% block title %}ㄷㅅㅂㄱ · 지난 피드{% endblock %}
 {% block body %}
 <div class="wide-col">
   <section class="hero">
-    <div class="hero-d">지난 판</div>
+    <div class="hero-d">지난 피드</div>
     <div class="stat3">
       <div><b>{{ editions|length }}</b><span>판</span></div>
       <div><b>{{ rows|length }}</b><span>이야기</span></div>
-      <div><b>{{ rows|selectattr('grade','equalto','A')|list|length }}</b><span>전국구</span></div>
+      <div><b>{{ rows|selectattr('grade','equalto','A')|list|length }}</b><span>전국 확산</span></div>
     </div>
   </section>
 
@@ -22,7 +22,7 @@
     </select>
   </div>
   <div class="seg" id="chips">
-    <button class="on" data-g="">전체</button><button data-g="A">전국구</button><button data-g="B">급부상</button><button data-g="M">폭발</button>
+    <button class="on" data-g="">전체</button><button data-g="A">전국 확산</button><button data-g="B">확산 중</button><button data-g="M">한 곳 대박</button>
     {% for f in fields %}<button data-f="{{ f }}">{{ f }}</button>{% endfor %}
   </div>
   <div class="dates">{% for e in editions %}<a href="{{ root }}d/{{ e.date }}.html">{{ e.date[5:]|replace('-','.') }}</a>{% endfor %}</div>
@@ -31,7 +31,7 @@
 {% endblock %}
 {% block script %}
 <script>
-const ROWS={{ rows_json|safe }}, GL={A:'전국구',B:'급부상',M:'폭발'};
+const ROWS={{ rows_json|safe }}, GL={A:'전국 확산',B:'확산 중',M:'한 곳 대박'};
 let g='', f='';
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function render(){

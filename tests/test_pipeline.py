@@ -39,7 +39,7 @@ def test_spread_gate_and_champions(tmp_path):
     ed = build_edition(db, cfg, date="2026-10-13", use_ai=False, fetch_context=False)
     assert len(ed["cards"]) == 1
     c = ed["cards"][0]
-    assert c["grade"] == "A" and "전국구" in c["badges"] and "NEW" in c["badges"]
+    assert c["grade"] == "A" and "전국 확산" in c["badges"] and "NEW" in c["badges"]
     assert c["spread"]["sites"] == 4
     assert "구글 트렌드" in c["evidence_line"]
     champs = {ch["source_id"]: ch for ch in ed["champions"]}
@@ -95,3 +95,24 @@ def test_channel_pages_built(tmp_path):
     page = (out / "channel" / "ppomppu_hot.html").read_text(encoding="utf-8")
     assert "뽐뿌 HOT" in page and "조회 1위" in page and "러닝화" in page
     assert 'href="channel/ppomppu_hot.html"' in (out / "archive.html").read_text(encoding="utf-8")
+
+
+def test_unrelated_posts_are_not_chained():
+    """A~B, B~C가 조금씩 닮았다고 A와 C까지 한 이야기로 묶지 않음. 흔한 검색어('수술')도 엉뚱한 글을 끌어오지 않음."""
+    from trendbot.pipeline import cluster as cl
+    posts = [
+        {"source_id": "theqoo", "title": "인천 홈플러스 흉기난동 용의자 체포", "url": "u1"},
+        {"source_id": "dcbest", "title": "인천 홈플러스 흉기난동 cctv 공개", "url": "u2"},
+        {"source_id": "cook82", "title": "유방암 수술한 지인 교수님 왈 체중관리", "url": "u3"},
+        {"source_id": "fmkorea", "title": "광희가 성형수술을 한 이유", "url": "u4"},
+        {"source_id": "ppomppu_hot", "title": "신한플레이 퀴즈 정답 10월 13일", "url": "u5"},
+        {"source_id": "theqoo", "title": "10월 13일 별자리 운세", "url": "u6"},
+    ]
+    signals = [{"kind": "google_trends", "title": "수술", "url": "", "value": 500,
+                "extra": {"news": [{"title": "인천 흉기난동 피해자 수술 끝에 회복"}]}}]
+    items = cl.build_items(posts, signals, {}, ["운세", "퀴즈 정답"])
+    stories = cl.cluster(items)
+    together = [sorted(i.url for i in s.items if i.url) for s in stories if len(s.items) > 1]
+    assert ["u1", "u2"] in together
+    assert all("u3" not in g and "u4" not in g for g in together)
+    assert all(i.url not in ("u5", "u6") for s in stories for i in s.items)

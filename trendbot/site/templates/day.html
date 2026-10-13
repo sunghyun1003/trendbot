@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon, podmap, logo %}
 {% block title %}ㄷㅅㅂㄱ · {{ e.date_label }}{% endblock %}
-{% set GL = {'A': '전국구', 'B': '급부상', 'M': '단일채널 폭발'} %}
+{% set GL = {'A': '전국 확산', 'B': '확산 중', 'M': '한 곳 대박'} %}
 {% block topright %}
   <div class="tr">
     {% if e.sample %}<span class="pill soft">견본</span>{% endif %}
@@ -27,8 +27,7 @@
   </nav>
 
   <section class="tab" id="tab-must">
-  <p class="tab-desc">여러 커뮤니티·검색·SNS에 <b>동시에 퍼진 이야기</b>만 골랐어요. 이것만 보면 오늘 대화에서 안 빠져요.</p>
-  {% if not e.cards %}<div class="empty"><b>조용한 하루</b>여러 곳에 동시에 퍼진 이야기가 없었어요.<button class="link-btn" data-goto="champ">커뮤니티별 1위 보기 ›</button></div>{% endif %}
+  {% if not e.cards %}<div class="empty"><b>조용한 하루</b><button class="link-btn" data-goto="champ">커뮤니티별 1위 보기 ›</button></div>{% endif %}
 
   {% for c in e.cards %}
   {% set vid = (c.videos[0].url|ytid) if c.videos else None %}
@@ -94,7 +93,6 @@
   </section>
 
   <section class="tab" id="tab-champ" hidden>
-  <p class="tab-desc">커뮤니티마다 오늘 <b>반응이 가장 컸던 글 1개</b>씩이에요. 그 커뮤니티 사람들이 오늘 본 글이라, 모두가 알아야 하는 건 아니에요.</p>
   <ul class="cfeed">
     {% for ch in champs %}
     {% set o = ch.post.original or {} %}
@@ -109,7 +107,7 @@
     </a></li>
     {% endfor %}
   </ul>
-  {% if not champs %}<div class="empty"><b>아직 없어요</b>수집이 쌓이면 채워져요</div>{% endif %}
+  {% if not champs %}<div class="empty"><b>아직 없어요</b></div>{% endif %}
   </section>
 
   <div class="fin">{{ logo('mini') }}</div>
@@ -117,14 +115,10 @@
 
 <aside class="rail">
   <div class="rail-card">
-    <div class="rail-h">날짜별 판</div>
+    <div class="rail-h">날짜별 피드</div>
     <nav class="dlist">
       {% for d in days %}<a class="{{ 'on' if d.date == e.date }}" href="{{ root }}d/{{ d.date }}.html"><span>{{ d.label }}</span><b>{{ d.count }}</b></a>{% endfor %}
     </nav>
-  </div>
-  <div class="rail-card guide">
-    <p><b>꼭 알아야 할 것</b> 여러 커뮤니티·검색·SNS에 동시에 퍼진 이야기</p>
-    <p><b>커뮤니티별 1위</b> 각 커뮤니티에서 오늘 반응이 가장 컸던 글</p>
   </div>
 </aside>
 

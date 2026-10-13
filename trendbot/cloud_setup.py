@@ -24,7 +24,7 @@ OLD_AGENT_APP_NAME = "ㄷㅅㅂㄱ 집 PC 도우미 창구"  # 예전 버전이 
 
 
 SCHEDULER = "dsbg-scheduler"
-PUBLISH_CRON = "30 21 * * *"      # 06:30 한국 시각 (UTC 기준으로 적음)
+PUBLISH_CRONS = ["30 21 * * *", "30 22 * * *"]  # 06:30 발행, 07:30 재확인 (한국 시각, UTC 기준으로 적음)
 COLLECT_CRON = "7 */2 * * *"      # 2시간마다 (매시 7분)
 
 
@@ -138,20 +138,20 @@ def ensure_scheduler(cf: Client) -> str:
         {"type": "secret_text", "name": "GITHUB_TOKEN", "text": token},
         {"type": "plain_text", "name": "GITHUB_REPO", "text": os.environ.get("GITHUB_REPOSITORY", "")},
         {"type": "plain_text", "name": "GITHUB_BRANCH", "text": os.environ.get("GITHUB_REF_NAME", "main")},
-        {"type": "plain_text", "name": "PUBLISH_CRON", "text": PUBLISH_CRON},
+        {"type": "plain_text", "name": "PUBLISH_CRON", "text": ",".join(PUBLISH_CRONS)},
     ]}
     code = (ROOT / "worker" / "scheduler.js").read_bytes()
     try:
         cf.call("PUT", f"/workers/scripts/{SCHEDULER}", files={
             "metadata": (None, json.dumps(meta), "application/json"),
             "scheduler.js": ("scheduler.js", code, "application/javascript+module")})
-        cf.call("PUT", f"/workers/scripts/{SCHEDULER}/schedules", json=[{"cron": PUBLISH_CRON}, {"cron": COLLECT_CRON}])
+        cf.call("PUT", f"/workers/scripts/{SCHEDULER}/schedules", json=[{"cron": c} for c in PUBLISH_CRONS] + [{"cron": COLLECT_CRON}])
     except CloudflareError as e:
         if " 403 " in str(e) or "Authentication" in str(e) or "permission" in str(e).lower():
             return ("정시 실행기: ✗ Cloudflare 토큰에 'Workers Scripts: Edit' 권한이 없어 설치하지 못함 "
                     "(keys-guide 3번에서 권한 추가 후 처음 설정 다시)")
         return f"정시 실행기: ✗ 설치 실패 ({str(e)[:120]})"
-    return "정시 실행기: 매일 06:30 발행, 2시간마다 수집"
+    return "정시 실행기: 매일 06:30 발행 (07:30 재확인), 2시간마다 수집"
 
 
 def configure_project(cf: Client, kv_id: str, team: str, aud: str) -> None:

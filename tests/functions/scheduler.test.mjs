@@ -5,11 +5,12 @@ import scheduler from "../../worker/scheduler.js";
 test("정시 실행기: 발행 시각엔 publish_auto, 그 외엔 collect 로 GitHub 실행", async () => {
   const sent = [];
   globalThis.fetch = async (url, opt) => { sent.push([url, JSON.parse(opt.body), opt.headers.Authorization]); return new Response(null, { status: 204 }); };
-  const env = { GITHUB_TOKEN: "t", GITHUB_REPO: "me/trendbot", GITHUB_BRANCH: "main", PUBLISH_CRON: "30 21 * * *" };
+  const env = { GITHUB_TOKEN: "t", GITHUB_REPO: "me/trendbot", GITHUB_BRANCH: "main", PUBLISH_CRON: "30 21 * * *,30 22 * * *" };
   const run = async (cron) => { let p; await scheduler.scheduled({ cron }, env, { waitUntil: (x) => { p = x; } }); await p; };
   await run("30 21 * * *");
   await run("7 */2 * * *");
-  assert.deepEqual(sent.map((s) => s[1].inputs.task), ["publish_auto", "collect"]);
+  await run("30 22 * * *");
+  assert.deepEqual(sent.map((s) => s[1].inputs.task), ["publish_auto", "collect", "publish_auto"]);
   assert.equal(sent[0][0], "https://api.github.com/repos/me/trendbot/actions/workflows/run.yml/dispatches");
   assert.equal(sent[0][1].ref, "main");
   assert.equal(sent[0][2], "Bearer t");

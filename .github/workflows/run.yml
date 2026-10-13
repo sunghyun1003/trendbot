@@ -9,6 +9,7 @@ on:
   schedule:
     - cron: "27 16 * * *"   # 01:27 예비 수집 (한국 시각, 아래 모두 같음)
     - cron: "47 21 * * *"   # 06:47 예비 발행 (이미 발행됐으면 건너뜀)
+    - cron: "37 22 * * *"   # 07:37 예비 발행 한 번 더 (08시 전에 보이도록)
     - cron: "57 2 * * *"    # 11:57 예비 수집
     - cron: "57 7 * * *"    # 16:57 예비 수집
     - cron: "57 12 * * *"   # 21:57 예비 수집
@@ -31,7 +32,7 @@ permissions:
   contents: write           # 데이터(DB)를 data 브랜치에 저장
 env:
   TZ: Asia/Seoul
-  TASK: ${{ github.event_name == 'schedule' && (github.event.schedule == '47 21 * * *' && 'publish_auto' || 'collect') || inputs.task || 'collect' }}
+  TASK: ${{ github.event_name == 'schedule' && ((github.event.schedule == '47 21 * * *' || github.event.schedule == '37 22 * * *') && 'publish_auto' || 'collect') || inputs.task || 'collect' }}
   ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
   YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

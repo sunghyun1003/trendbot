@@ -27,7 +27,7 @@
     <div class="hero-n"><b class="{{ 'bad' if bad }}">{{ on|length - bad|length }}/{{ on|length }}</b><span>{{ '모두 정상' if not bad else '정상' }}</span></div>
   </section>
 
-  <h2 class="sec-h">커뮤니티 <small>2시간마다 인기글 수집</small></h2>
+  <h2 class="sec-h">커뮤니티</h2>
   {{ rows(sources|selectattr('group', 'equalto', 'community')|list, true) }}
   <h2 class="sec-h">검색·뉴스·SNS·영상</h2>
   {{ rows(sources|selectattr('group', 'equalto', 'signal')|list, false) }}
@@ -47,7 +47,6 @@
       {% endfor %}
     </ul>
     {% endif %}
-    <p class="adm-note">이슈링크가 하루 동안 많이 본 커뮤니티 글 중, 우리가 수집하는 사이트의 상위 {{ b.total }}개와 비교한 결과예요. '수집됨, 판에서 빠짐'이 많으면 판정 기준을, '수집 안 됨'이 많으면 수집 범위를 손볼 차례예요.</p>
   </section>
   {% endif %}
 
@@ -59,14 +58,13 @@
     </div>
     <ul class="health" id="runs"></ul>
 
-    <h2>키 <small>값은 보이지 않아요</small></h2>
+    <h2>키</h2>
     <ul class="health" id="keys"></ul>
     <p class="adm-note" id="keys-note"></p>
 
-    <h2>인스타 감시 계정 <small>한 줄에 하나, @ 없이</small></h2>
-    <textarea class="adm-ta" id="ig" rows="6" placeholder="예: 매체나 밈 계정 아이디"></textarea>
+    <h2>인스타 감시 계정</h2>
+    <textarea class="adm-ta" id="ig" rows="6" placeholder="한 줄에 하나, @ 없이"></textarea>
     <div class="adm-btns"><button class="btn ghost" id="ig-save">저장</button></div>
-    <p class="adm-note">비즈니스·크리에이터 계정만 읽을 수 있어요. 인스타 키를 넣기 전까지는 저장만 되고 수집은 하지 않아요.</p>
 
   </section>
   <p class="adm-note" id="admin-off" hidden>관리 버튼(지금 수집·발행, 켜기·끄기, 키 확인)을 불러오지 못했어요. 로그인한 상태에서 새로고침해 보세요.</p>

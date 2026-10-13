@@ -1,4 +1,4 @@
-# 임시: 새 주소(dsbg.pages.dev)에 팀원 로그인 잠금을 즉시 적용 (확인 후 삭제) - 2차
+# 임시: 새 주소(dsbg.pages.dev)에 팀원 로그인 잠금을 즉시 적용 (확인 후 삭제) - 3차
 name: lock-now
 on:
   push:
@@ -21,9 +21,15 @@ jobs:
         with: {python-version: "3.13", cache: pip}
       - run: pip install -r requirements.txt
       - run: python -m trendbot cloud-setup | tee -a "$GITHUB_STEP_SUMMARY"; exit ${PIPESTATUS[0]}
-      - name: 잠금 확인 (로그인 없이 열면 막혀야 함)
+      - name: 잠금 확인 (로그인 없이 열면 막혀야 함, 퍼지는 데 시간이 걸려 최대 3분 다시 확인)
         run: |
-          for u in https://dsbg.pages.dev/ https://dsbg.pages.dev/status.html; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" "$u"); echo "$u → $code" | tee -a "$GITHUB_STEP_SUMMARY"
-            [ "$code" = "302" ] || [ "$code" = "403" ] || exit 1
+          for t in $(seq 1 18); do
+            ok=1
+            for u in https://dsbg.pages.dev/ https://dsbg.pages.dev/status.html https://trendbot-8se.pages.dev/; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" "$u"); echo "$t: $u → $code"
+              case "$u:$code" in *:302|*:403|*trendbot-8se*:404|*trendbot-8se*:000|*trendbot-8se*:522|*trendbot-8se*:530) ;; *) ok=0;; esac
+            done
+            [ $ok = 1 ] && echo "잠금 확인 완료" | tee -a "$GITHUB_STEP_SUMMARY" && exit 0
+            sleep 10
           done
+          exit 1

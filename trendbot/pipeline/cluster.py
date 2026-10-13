@@ -22,6 +22,7 @@ STOPWORDS = {
 JOSA = ("에서는", "에게서", "으로는", "이라는", "에서", "에게", "한테", "으로", "까지", "부터", "처럼", "보다",
         "이랑", "라는", "하는", "했던", "은", "는", "이", "가", "을", "를", "의", "에", "로", "와", "과", "도", "만", "랑")
 _TOKEN = re.compile(r"[가-힣]{2,}|[A-Za-z][A-Za-z0-9]{1,}|\d{2,}[가-힣A-Za-z]*")
+_DATEISH = re.compile(r"\d+(년|월|일|시|분|초|개월|주년)?")  # '10월', '13일', '2026년' 같은 날짜는 이야기를 구분하지 못함
 _YT = re.compile(r"(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/shorts/)([\w-]{11})")
 
 
@@ -44,7 +45,7 @@ def tokens(title: str, aliases: dict[str, list[str]] | None = None) -> set[str]:
     out = set()
     for t in _TOKEN.findall(text):
         t = _strip_josa(t.lower())
-        if len(t) >= 2 and t not in STOPWORDS:
+        if len(t) >= 2 and t not in STOPWORDS and not _DATEISH.fullmatch(t):
             out.add(t)
     return out
 
@@ -110,6 +111,8 @@ class _UF:
 def build_items(posts: list[dict], signals: list[dict], aliases: dict, routine: list[str]) -> list[Item]:
     items: list[Item] = []
     for p in posts:
+        if any(r in p["title"] for r in routine):  # 매일 올라오는 운세·퀴즈 정답·적립 글
+            continue
         items.append(Item("post", p["source_id"], p["title"], p["url"], p, tokens(p["title"], aliases)))
     for s in signals:
         if any(r in s["title"] for r in routine):
@@ -120,11 +123,18 @@ def build_items(posts: list[dict], signals: list[dict], aliases: dict, routine: 
     return items
 
 
+ANCHOR_MAX_HITS = 12   # 검색어가 이보다 많은 글에 들어 있으면 너무 흔한 말(예: '여성')로 보고 묶지 않음
+MIN_SHARE = 0.3        # 짧은 쪽 제목 낱말의 30% 이상을 공유해야 같은 이야기
+MAX_STORY = 25
+
+
 def cluster(items: list[Item]) -> list[Story]:
+    """같은 이야기끼리 묶음. 'A~B가 닮고 B~C가 닮아서 A와 C가 엉뚱하게 묶이는' 사슬을 막으려고,
+    한 이야기는 '중심 글'과 그 글에 직접 닮은 것들로만 만듦."""
     n = len(items)
     uf = _UF(n)
 
-    # 1. 같은 링크/영상
+    # 1. 같은 링크/영상은 무조건 한 덩어리
     by_link: dict[str, int] = {}
     for i, it in enumerate(items):
         if not it.url:
@@ -134,21 +144,42 @@ def cluster(items: list[Item]) -> list[Story]:
             uf.union(by_link[k], i)
         else:
             by_link[k] = i
+    node_of = [uf.find(i) for i in range(n)]
+    nodes: dict[int, list[int]] = {}
+    for i, r in enumerate(node_of):
+        nodes.setdefault(r, []).append(i)
 
-    # 2. 검색어 앵커: 구글 트렌드·X 트렌드 키워드가 제목에 그대로 들어 있으면 같은 이야기
-    anchors = [(i, normalize(it.title)) for i, it in enumerate(items)
-               if it.kind in ("trend", "xtrend") and len(normalize(it.title)) >= 2]
-    for i, it in enumerate(items):
-        if it.kind in ("trend", "xtrend"):
+    edges: dict[int, dict[int, float]] = {r: {} for r in nodes}
+
+    def link(a: int, b: int, w: float) -> None:
+        ra, rb = node_of[a], node_of[b]
+        if ra != rb:
+            edges[ra][rb] = edges[ra].get(rb, 0) + w
+            edges[rb][ra] = edges[rb].get(ra, 0) + w
+
+    # 2. 검색어 앵커: 구글 트렌드·X 트렌드 키워드가 제목에 들어 있으면 같은 이야기.
+    #    단 '수술'·'보험' 같은 흔한 말이 엉뚱한 글을 끌어오지 않게,
+    #    구글 트렌드는 함께 온 관련 기사 제목과 낱말이 하나 더 겹치는 글만, 기사가 없으면 3글자 이상·적게 걸린 말만 씀
+    for ai, a in enumerate(items):
+        if a.kind not in ("trend", "xtrend"):
             continue
-        norm = normalize(it.title)
-        for ai, akey in anchors:
-            if akey and akey in norm:
-                uf.union(ai, i)
+        key = normalize(a.title)
+        if len(key) < 2:
+            continue
+        hits = [i for i, it in enumerate(items) if it.kind not in ("trend", "xtrend") and key in normalize(it.title)]
+        news = (a.data.get("extra") or {}).get("news") or [] if isinstance(a.data.get("extra"), dict) else []
+        context = set().union(*(tokens(n.get("title", "")) for n in news)) - a.toks if news else set()
+        if context:
+            hits = [i for i in hits if (items[i].toks - a.toks) & context]
+        elif len(key) < 3 or len(hits) > ANCHOR_MAX_HITS // 2:
+            continue
+        if len(hits) <= ANCHOR_MAX_HITS:
+            for i in hits:
+                link(ai, i, 3)
 
-    # 3. 흔하지 않은 낱말 2개 이상 공유 (다른 출처끼리)
+    # 3. 흔하지 않은 낱말 2개 이상 + 짧은 쪽 제목 낱말의 30% 이상 공유 (다른 출처끼리)
     df = Counter(t for it in items for t in it.toks)
-    rare_max = max(3, int(n * 0.02))
+    rare_max = max(3, int(n * 0.005))  # 전체 글의 0.5% 넘게 나오는 말('남편'·'아내' 등)은 흔한 말
     rare = [{t for t in it.toks if df[t] <= rare_max} for it in items]
     postings: dict[str, list[int]] = {}
     for i, rs in enumerate(rare):
@@ -164,14 +195,24 @@ def cluster(items: list[Item]) -> list[Story]:
                 if items[a].source_id != items[b].source_id:
                     pair_shared[(a, b)] += 1
     for (a, b), c in pair_shared.items():
-        if c >= 2:
-            uf.union(a, b)
+        short = min(len(items[a].toks), len(items[b].toks)) or 1
+        if c >= 2 and c / short >= MIN_SHARE:  # 낱말 하나만 겹치는 건 우연이 많아 묶지 않음
+            link(a, b, c)
 
-    groups: dict[int, list[Item]] = {}
-    for i, it in enumerate(items):
-        groups.setdefault(uf.find(i), []).append(it)
+    # 4. 중심 글부터 차례로: 연결이 가장 많은 것을 중심으로, 그 중심에 '직접' 닮은 것만 붙임
+    assigned: set[int] = set()
     stories = []
-    for members in groups.values():
-        anchor = next((m.title for m in members if m.kind == "trend"), None)
-        stories.append(Story(members, anchor))
+    for r in sorted(nodes, key=lambda r: (-sum(edges[r].values()), r)):
+        if r in assigned:
+            continue
+        assigned.add(r)
+        members = list(nodes[r])
+        for nb, _w in sorted(edges[r].items(), key=lambda kv: -kv[1]):
+            if nb in assigned or len(members) + len(nodes[nb]) > MAX_STORY:
+                continue
+            assigned.add(nb)
+            members += nodes[nb]
+        group = [items[i] for i in sorted(members)]
+        anchor = next((m.title for m in group if m.kind == "trend"), None)
+        stories.append(Story(group, anchor))
     return stories

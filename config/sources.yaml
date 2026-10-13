@@ -22,10 +22,10 @@ grading:
   max_cards: 15               # 필수 카드 최대 장수 (모든 등급 합산)
   field_caps: {정치: 2, 사회/사건: 3}
   overflow_lines: 3           # 상한 초과분을 한 줄로 보여 줄 개수
-  a_min_pods: 3               # A 전국구: 커뮤니티 포드 최소 개수 (+ 남녀 교차)
+  a_min_pods: 3               # A 전국 확산: 커뮤니티 포드 최소 개수 (+ 남녀 교차)
   a_alt_min_pods: 4           # 또는 포드 4개 + 검색·뉴스 신호
-  b_min_pods: 2               # B 급부상
-  m_max_per_day: 2            # M 단일채널 폭발
+  b_min_pods: 2               # B 확산 중
+  m_max_per_day: 2            # M 한 곳 대박
   m_rank_top: 1               # 보정 전: 채널 1위이면서
   m_min_views: 100000         # 조회 하한 (보정 기간에 채널별로 조정)
   s_traffic_min: 10000        # 구글 트렌드 S 신호 하한
@@ -35,7 +35,7 @@ grading:
   champion_record_pct: 0.95   # '역대급'
 
 # 일상 키워드 (S 신호·묶기에서 제외)
-routine_keywords: [날씨, 로또, 환율, 코스피, 코스닥, 미세먼지, 주가, 운세]
+routine_keywords: [날씨, 로또, 환율, 코스피, 코스닥, 미세먼지, 주가, 운세, 네이버페이, 퀴즈 정답, 출석 퀴즈, 출석체크]
 
 # 별칭 사전: 커뮤니티마다 다르게 부르는 이름을 하나로 묶음
 aliases:

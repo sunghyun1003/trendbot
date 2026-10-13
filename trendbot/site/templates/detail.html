@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon, podmap %}
 {% block title %}{{ posts[0].title if posts else (c.headline if c else '') }} · ㄷㅅㅂㄱ{% endblock %}
-{% set GL = {'A': '전국구', 'B': '급부상', 'M': '단일채널 폭발'} %}
+{% set GL = {'A': '전국 확산', 'B': '확산 중', 'M': '한 곳 대박'} %}
 {% set NOTE = {'login': '로그인해야 볼 수 있는 글이에요', 'blocked': '사이트가 미리보기를 막았어요', 'error': '원문을 불러오지 못했어요', 'empty': '본문을 찾지 못했어요'} %}
 {% block topleft %}<a class="back" href="{{ back }}" aria-label="뒤로">{{ icon('back') }}</a><span class="top-t">{{ GL[c.grade] if c else ch_name }}</span>{% endblock %}
 {% block body %}
