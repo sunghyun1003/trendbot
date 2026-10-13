@@ -137,13 +137,17 @@ def cmd_daily(cfg: dict, use_ai: bool, deploy: bool) -> None:
 
 
 def cmd_deploy() -> None:
-    """public/ 폴더를 Cloudflare Pages에 올림. 처음이면 프로젝트부터 만듦."""
+    """public/ 폴더를 Cloudflare Pages에 올림.
+    올리기 전에 항상 '처음 설정'과 같은 점검(사이트·팀원 로그인 잠금)을 먼저 해서, 잠기지 않은 주소에는 절대 올리지 않음."""
+    from trendbot import cloud_setup
     from trendbot.cloudflare import PROJECT as project
+    try:
+        for line in cloud_setup.run():
+            print(f"설정 점검: {line}")
+    except cloud_setup.SetupError as e:
+        raise SystemExit(f"사이트 잠금을 확인하지 못해 올리지 않음: {e}")
     win = sys.platform == "win32"
     wrangler = ["npx", "--yes", "wrangler@3", "pages"]
-    # 이미 있으면 실패해도 괜찮음
-    subprocess.run(wrangler + ["project", "create", project, "--production-branch", "main"], cwd=ROOT, shell=win,
-                   capture_output=True)
     # 서버 기능(관리 버튼·피드백)은 실행 위치의 functions/ 폴더에서 읽히므로, 임시 폴더에 functions/를 두고 그 안에서 올림
     import shutil
     import tempfile
