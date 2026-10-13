@@ -1,4 +1,4 @@
-# 임시: 새 주소(dsbg.pages.dev)에 팀원 로그인 잠금을 즉시 적용 (확인 후 삭제)
+# 임시: 새 주소(dsbg.pages.dev)에 팀원 로그인 잠금을 즉시 적용 (확인 후 삭제) - 2차
 name: lock-now
 on:
   push:

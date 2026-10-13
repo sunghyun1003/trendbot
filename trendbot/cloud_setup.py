@@ -79,7 +79,9 @@ def ensure_login_method(cf: Client) -> None:
 def _upsert_app(cf: Client, apps: list[dict], body: dict) -> dict:
     cur = next((a for a in apps if a.get("name") == body["name"]), None)
     if cur:
-        return cf.call("PUT", f"/access/apps/{cur['id']}", json={**cur, **body})
+        # 새 형식(destinations)은 잠글 주소 목록과 반드시 같아야 하므로 우리 목록으로 다시 채움
+        keep = {k: v for k, v in cur.items() if k not in ("destinations", "self_hosted_domains", "domain")}
+        return cf.call("PUT", f"/access/apps/{cur['id']}", json={**keep, **body})
     return cf.call("POST", "/access/apps", json=body)
 
 
@@ -111,11 +113,12 @@ def ensure_access(cf: Client, host: str, allowed: list[str], domain: str | None 
     team = org["auth_domain"]
     ensure_login_method(cf)
     apps = cf.call("GET", "/access/apps") or []
+    # 미리보기·내 도메인·아직 남은 예전 주소까지 잠금
+    hosts = [host, f"*.{host}"] + ([domain] if domain else []) + [d for h in old_hosts for d in (h, f"*.{h}")]
     app = _upsert_app(cf, apps, {
         "name": APP_NAME, "type": "self_hosted", "domain": host,
-        # 미리보기·내 도메인·아직 남은 예전 주소까지 잠금
-        "self_hosted_domains": [host, f"*.{host}"] + ([domain] if domain else [])
-                               + [d for h in old_hosts for d in (h, f"*.{h}")],
+        "self_hosted_domains": hosts,
+        "destinations": [{"type": "public", "uri": h} for h in hosts],
         "session_duration": "720h", "app_launcher_visible": False,
         "policies": [{"name": "팀원", "decision": "allow", "precedence": 1,
                       "include": [{"email": {"email": e}} for e in allowed]}],

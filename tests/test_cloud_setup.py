@@ -101,3 +101,13 @@ def test_old_trendbot_site_is_removed_or_kept_locked(env, monkeypatch):
     (main,) = fake.apps
     assert "trendbot.pages.dev" in main["self_hosted_domains"]           # 못 지우면 잠금은 유지
     assert any("예전 주소" in l for l in lines)
+
+
+def test_existing_app_destinations_are_replaced(env, monkeypatch):
+    fake = FakeCF()
+    fake.apps.append({"id": "a1", "name": "ㄷㅅㅂㄱ", "aud": "aud1", "domain": "trendbot-8se.pages.dev",
+                      "destinations": [{"type": "public", "uri": "trendbot-8se.pages.dev"}]})
+    cloud_setup.run(client(fake, monkeypatch))
+    (app,) = fake.apps
+    assert [d["uri"] for d in app["destinations"]] == ["dsbg.pages.dev", "*.dsbg.pages.dev"]
+    assert app["domain"] == "dsbg.pages.dev"

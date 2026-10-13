@@ -109,7 +109,8 @@ def _card(c: Candidate, subs: list[Candidate], cfg: dict, fetch_context: bool) -
         "pods": sorted(c.pods), "tokens": sorted(c.story.toks)[:40],
         "evidence_line": _evidence_line(c, cfg), "age": _age_label(c, cfg),
         "path": path, "posts": post_rows[:6], "videos": videos[:3], "news": news[:6], "snippets": snippets,
-        "field_hint": hints[0] if hints else None,
+        # 사이트 성격 힌트는 글이 모두 그 사이트일 때만 (보배드림 글이 하나 섞였다고 '자동차'가 되지 않게)
+        "field_hint": hints[0] if hints and len(hints) == len(post_rows) else None,
         "spread": {"sites": len(seen_src), "pods": len(c.pods), "traffic": c.traffic},
         "subs": [{"title": (s.story.posts[0].title if s.story.posts else s.story.anchor or ""),
                   "evidence": _evidence_line(s, cfg)} for s in subs],

@@ -107,18 +107,28 @@ def edit(cards: list[dict]) -> tuple[dict[str, dict], str | None]:
     rules = RULES_PATH.read_text(encoding="utf-8")
     payload = json.dumps([_brief(c) for c in cards], ensure_ascii=False, indent=1)
     client = anthropic.Anthropic(max_retries=2)
-    try:
-        resp = client.beta.messages.create(
-            model=MODEL,
-            max_tokens=16000,
-            betas=["server-side-fallback-2026-07-01"],
-            fallbacks="default",
-            system=rules,
-            output_config={"effort": "medium", "format": {"type": "json_schema", "schema": SCHEMA}},
-            messages=[{"role": "user", "content": _content(cards, payload)}],
-        )
-    except anthropic.APIError as e:
-        return {}, f"AI 호출 실패: {e.__class__.__name__}"
+    base = dict(model=MODEL, max_tokens=16000, system=rules,
+                output_config={"effort": "medium", "format": {"type": "json_schema", "schema": SCHEMA}})
+    # 요청이 거절(400)되면 원인이 될 만한 부분을 하나씩 빼고 다시 시도: ① 그대로 ② 이미지 없이 ③ 대체 모델 설정 없이
+    attempts = [("기본", True, True), ("이미지 없이", False, True), ("대체 설정 없이", False, False)]
+    resp, errors = None, []
+    for label, with_images, with_fallback in attempts:
+        content = _content(cards, payload) if with_images else [{"type": "text", "text": payload}]
+        try:
+            if with_fallback:
+                resp = client.beta.messages.create(**base, betas=["server-side-fallback-2026-07-01"],
+                                                   fallbacks="default",
+                                                   messages=[{"role": "user", "content": content}])
+            else:
+                resp = client.messages.create(**base, messages=[{"role": "user", "content": content}])
+            break
+        except anthropic.BadRequestError as e:
+            errors.append(f"{label}: {getattr(e, 'message', str(e))[:200]}")
+            print(f"AI 요청 거절 ({label}): {getattr(e, 'message', str(e))[:300]}")
+        except anthropic.APIError as e:
+            return {}, f"AI 호출 실패: {e.__class__.__name__} {str(e)[:200]}"
+    if resp is None:
+        return {}, "AI 호출 실패: " + " / ".join(errors)
     if resp.stop_reason == "refusal":
         return {}, "AI가 응답을 거부해 편집자 부재 모드로 발행"
     if resp.stop_reason == "max_tokens":
@@ -131,11 +141,39 @@ def edit(cards: list[dict]) -> tuple[dict[str, dict], str | None]:
     return {c["id"]: c for c in data.get("cards", [])}, None
 
 
+# AI가 없을 때 쓰는 단순 분야 추정 (제목·뉴스의 낱말로). 애매하면 '기타'.
+FIELD_WORDS = {
+    "스포츠": ["홈런", "감독", "선수", "야구", "축구", "kbo", "프로야구", "리그", "월드컵", "올림픽", "골", "경기", "mvp", "타율"],
+    "연예/방송": ["배우", "아이돌", "걸그룹", "보이그룹", "드라마", "예능", "방송", "소속사", "연예인", "데뷔", "컴백", "출연", "멤버", "여돌", "남돌"],
+    "음악": ["앨범", "음원", "콘서트", "차트", "신곡", "뮤비", "가수"],
+    "게임": ["게임", "롤", "스팀", "닌텐도", "플스", "업데이트", "패치", "가챠"],
+    "IT": ["아이폰", "갤럭시", "애플", "삼성전자", "ai", "앱", "구글", "챗gpt", "반도체", "해킹"],
+    "경제": ["주식", "코스피", "환율", "금리", "부동산", "아파트값", "하이닉스", "물가", "증시", "코인"],
+    "정치": ["대통령", "국회", "의원", "정부", "장관", "여당", "야당", "선거", "탄핵"],
+    "사회/사건": ["체포", "경찰", "살해", "폭행", "흉기", "범인", "구속", "사망", "사고", "검찰", "재판", "칼부림", "절도"],
+    "쇼핑/딜": ["할인", "특가", "핫딜", "쿠폰", "적립", "네이버페이", "품절", "출석"],
+    "음식": ["맛집", "메뉴", "편의점", "라면", "치킨", "디저트", "급식"],
+    "패션/뷰티": ["화장품", "코디", "패딩", "신발", "향수", "뷰티", "립"],
+    "자동차": ["자동차", "신차", "전기차", "운전", "차량", "주차", "테슬라", "현대차", "블랙박스"],
+    "여행": ["여행", "항공", "호텔", "공항", "관광"],
+    "생활/육아": ["육아", "시어머니", "며느리", "결혼", "예식장", "엄마", "아이", "출산", "이혼"],
+}
+
+
+def guess_field(texts: list[str]) -> str:
+    text = " ".join(texts).lower()
+    scores = {f: sum(text.count(w) for w in ws) for f, ws in FIELD_WORDS.items()}
+    best = max(scores, key=scores.get)
+    return best if scores[best] else "기타"
+
+
 def apply(card: dict, result: dict | None) -> dict:
     """편집 결과를 카드에 붙임. A등급은 광고·중복·신상 외에는 제외 불가."""
     if not result:
         card.update(headline=card["posts"][0]["title"] if card["posts"] else card.get("anchor") or "",
-                    why=card["evidence_line"], field=card.get("field_hint") or "기타", attributes=[],
+                    why=card["evidence_line"],
+                    field=card.get("field_hint") or guess_field([p["title"] for p in card["posts"][:3]] + card.get("news", [])[:3]),
+                    attributes=[],
                     marketer="없음", context="제목만", exclude="없음", caution=False, ai=False)
         return card
     exclude = result.get("exclude", "없음")
