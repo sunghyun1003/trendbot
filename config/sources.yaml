@@ -2,7 +2,7 @@
 # - 이 파일만 고치면 게시판을 켜고 끄거나, 채널 1위 목록을 바꿀 수 있습니다.
 # - selectors(선택자)는 "웹페이지에서 어느 부분이 제목/조회수인지" 알려주는 주소입니다.
 #   verified: false 인 소스는 실제 화면으로 아직 확인하지 않은 것입니다.
-#   집 PC에서 `python -m trendbot probe` 를 돌리면 확인 결과가 나옵니다.
+#   GitHub 서버에서 실제 수집으로 확인한 것은 verified: true 입니다.
 
 pods:
   P1: {label: "남 10~20대", gender: M, age: young}
@@ -74,11 +74,28 @@ sources:
       comments: "span.list_comment_num"
     detail:
       body: "#wrap_copy"
+  - id: inven
+    name: 인벤 오픈이슈갤러리
+    pod: P1                 # 게임·밈 커뮤니티, 남 10~20대
+    champion: true
+    enabled: true
+    verified: true          # GitHub 서버에서 목록 확인 (2026-10-13), robots.txt 허용
+    url: https://www.inven.co.kr/board/webzine/2097?my=chuchu
+    row: "table tbody tr"
+    strip: ["span.category"]
+    fields:
+      title: "a.subject-link"
+      link: "a.subject-link@href"
+      views: "td.view"
+      likes: "td.reco"
+      comments: "span.con-comment"
+    detail:
+      body: "#powerbbsContent, div.articleContent"
   - id: fmkorea
     name: 에펨코리아 포텐
     pod: P1
     champion: false
-    enabled: false          # 봇 차단이 강함. 집 PC 점검에서 막히지 않으면 켭니다.
+    enabled: false          # 봇 차단이 강함 (우회하지 않음)
     verified: false
     url: https://www.fmkorea.com/best
     row: "li.li"

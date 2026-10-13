@@ -5,39 +5,38 @@
 판정 기준은 **독자층이 다른 커뮤니티(남초·여초, 연령대)가 각자의 베스트 목록에 같은 이야기를 동시에 올렸는가**입니다. 여기에 검색·뉴스·유튜브 신호를 더합니다. 이 판정을 통과한 약 30건에만 AI 편집자(Claude Opus 5.5)가 헤드라인, '왜 알아야 하나' 한 줄, 태그를 붙입니다.
 
 - 설계 문서: [docs/trend-archive-plan.md](docs/trend-archive-plan.md)
-- **시작 안내서 (명령어 없이 4단계): [docs/start-guide.md](docs/start-guide.md)**
+- **시작 안내서 (명령어 없이 3단계): [docs/start-guide.md](docs/start-guide.md)**
 - 키 발급: [docs/keys-guide.md](docs/keys-guide.md)
 
 ## 구조
 
 ```
-GitHub 서버 (무료, 예약 실행)                         Cloudflare (무료)
-  수집: 커뮤니티 9곳·구글 트렌드·뉴스·유튜브   ─┐
-  집 PC 도우미가 보낸 디젤매니아 받기          ├→ DB(data 브랜치) → 판정 → AI 편집 → 사이트 ─→ Pages + Access(팀원 로그인)
-                                               ─┘                                           ↑ 회사 PC·휴대폰은 브라우저로 열람
-집 PC 도우미 (윈도우, 30분마다 조용히): 디젤매니아만 읽어 사이트로 보냄 ──→ /api/agent → KV
-사이트 '상태' 탭: 지금 수집·발행, 사이트 켜기·끄기, 키 ✓/✗, 도우미 설치 파일
+Cloudflare 정시 실행기 ── 06:30 발행 / 2시간마다 수집 시작 ──┐
+                                                               ▼
+GitHub 서버 (무료): 커뮤니티 9곳·구글 트렌드·뉴스·다음 연예 랭킹·X 트렌드·유튜브 수집
+                   → DB(data 브랜치) → 판정 → AI 편집 → 사이트 ──→ Cloudflare Pages + Access(팀원 로그인)
+                                                                          ↑ 회사 PC·휴대폰은 브라우저로 열람
+사이트 '상태' 탭: 지금 수집·발행, 사이트 켜기·끄기, 키 ✓/✗, 인스타 감시 계정
 ```
 
 | 경로 | 내용 |
 |---|---|
-| `.github/workflows/run.yml` | 예약 수집·발행 (대시보드 버튼도 이것을 실행) |
+| `.github/workflows/run.yml` | 수집·발행 (정시 실행기·대시보드 버튼·예비 예약이 이것을 실행) |
+| `worker/scheduler.js` | 정시 실행기 (Cloudflare Worker, '처음 설정'이 자동 설치) |
 | `.github/workflows/setup.yml` | '처음 설정': Cloudflare 사이트·저장소·로그인 잠금 자동 생성 → 첫 발행 |
 | `config/sources.yaml` | 게시판 켜기/끄기, 독자층 묶음(포드), 채널 1위 목록, 판정 기준 |
 | `config/editor_rules.md` | AI 편집자 하우스 룰 (한국어) |
-| `trendbot/collectors/` | 게시판(설정 기반 범용 수집기), 네이버 카페, 구글 트렌드·뉴스, 유튜브, 원문·사진 |
+| `trendbot/collectors/` | 게시판(설정 기반 범용 수집기), 구글 트렌드·뉴스, 다음 연예, X 트렌드, 유튜브, 인스타, 원문·사진 |
 | `trendbot/pipeline/` | `cluster.py`(이야기 묶기), `grade.py`(등급·중복·채널 1위), `editor.py`(AI), `edition.py`(하루치 판 조립) |
 | `trendbot/site/` | 정적 사이트 생성기와 화면 |
 | `trendbot/cloud_setup.py`, `cloudflare.py` | 처음 설정, Cloudflare API |
-| `trendbot/inbox.py`, `feedback.py` | 집 PC 도우미 결과·팀원 피드백 받기 |
-| `site_functions/api/` | 사이트 서버 기능: 로그인 확인, 피드백, 관리 버튼, 도우미 창구 |
-| `tools/helper/` | 집 PC 도우미 (설치 스크립트 + 프로그램) |
+| `trendbot/feedback.py` | 팀원 피드백 받기 |
+| `site_functions/api/` | 사이트 서버 기능: 로그인 확인, 피드백, 관리 버튼 |
 
 ## 명령어 (개발·수리용, 평소엔 GitHub 서버가 자동 실행)
 
 ```
 python -m trendbot snapshot     # 1회 수집
-python -m trendbot inbox        # 집 PC 도우미 결과 받기
 python -m trendbot daily        # 오늘의 판 생성 + 사이트 배포 (--no-ai, --no-deploy)
 python -m trendbot cloud-setup  # 처음 설정 (Cloudflare)
 python -m trendbot sample       # 견본 데이터로 화면 미리보기 (public/index.html)

@@ -63,7 +63,7 @@ def run(cfg: dict) -> None:
         except Exception as e:
             results.append({"id": name, "name": name, "robots": "-", "fetch": f"실패: {e}", "rows": 0, "sample": ""})
 
-    lines = [f"# 집 PC 점검 결과 ({datetime.now():%Y-%m-%d %H:%M}, {platform.system()})", "",
+    lines = [f"# 사이트 점검 결과 ({datetime.now():%Y-%m-%d %H:%M}, {platform.system()})", "",
              "| 소스 | robots.txt | 가져오기 | 읽은 줄 | 첫 줄 예시 |", "|---|---|---|---|---|"]
     for r in results:
         rb = {True: "허용", False: "금지", None: "확인 불가"}.get(r["robots"], r["robots"])

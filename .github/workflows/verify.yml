@@ -1,0 +1,13 @@
+# 임시: 인벤 추가 후 GitHub 서버 수집 확인 (확인 후 삭제)
+name: verify
+on:
+  push:
+    paths: [".github/workflows/verify.yml"]
+permissions:
+  contents: write
+jobs:
+  collect:
+    uses: ./.github/workflows/run.yml
+    with:
+      task: collect
+    secrets: inherit

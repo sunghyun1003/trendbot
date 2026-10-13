@@ -55,7 +55,7 @@ GitHub 서버가 사이트를 만들고 올리고 잠글 때 쓰는 허가증입
 
 1. 오른쪽 위 사람 아이콘 → **My Profile → API Tokens → Create Token → Create Custom Token(Get started)**
 2. 이름: `dsbg`
-3. **Permissions**에 아래 4줄을 만듭니다(줄 추가는 **+ Add more**). 4줄 모두 왼쪽 칸은 **Account**, 오른쪽 칸은 **Edit**입니다.
+3. **Permissions**에 아래 5줄을 만듭니다(줄 추가는 **+ Add more**). 5줄 모두 왼쪽 칸은 **Account**, 오른쪽 칸은 **Edit**입니다.
 
    | 가운데 칸 |
    |---|
@@ -63,9 +63,15 @@ GitHub 서버가 사이트를 만들고 올리고 잠글 때 쓰는 허가증입
    | Workers KV Storage |
    | Access: Apps and Policies |
    | Access: Organizations, Identity Providers, and Groups |
+   | Workers Scripts |
 
 4. **Account Resources**: Include → 내 계정
 5. **Continue to summary → Create Token**. 나온 토큰을 복사해(한 번만 보임) GitHub 비밀값 `CLOUDFLARE_API_TOKEN`으로 넣습니다.
+
+**이미 토큰을 만들었다면 (Workers Scripts 줄 추가만)**
+- 'Workers Scripts'는 매일 06:30 정시 발행용 '정시 실행기'에 필요합니다.
+- My Profile → API Tokens → 만든 `dsbg` 토큰 오른쪽 **⋯ → Edit** → **+ Add more** → Account · **Workers Scripts** · **Edit** → **Continue to summary → Update Token**
+- 토큰 값은 그대로라 GitHub 비밀값은 바꾸지 않아도 됩니다. '처음 설정'만 다시 누르세요.
 
 ## 4. Cloudflare Zero Trust 시작 (팀원 로그인 기능, 넣을 값 없음)
 

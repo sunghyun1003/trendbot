@@ -71,3 +71,15 @@ def test_real_site_fixtures(sid):
     assert all("javascript" not in p.url for p in posts)
     o = parse_original((FIX / f"{sid}_post.html").read_text(encoding="utf-8"), posts[0].url, src.get("detail"))
     assert o["status"] == "ok"
+
+
+def test_inven_open_issue():
+    from pathlib import Path
+    from trendbot.collectors.html_list import parse_list
+    from trendbot.config import load_config
+    src = next(s for s in load_config()["sources"] if s["id"] == "inven")
+    posts = parse_list((Path(__file__).parent / "fixtures" / "inven.html").read_text(encoding="utf-8", errors="ignore"), src)
+    assert len(posts) >= 15
+    p = posts[1]
+    assert p.title == "임은정 징계할거면" and p.views == 2623 and p.likes == 21 and p.comments == 12
+    assert "[" not in posts[3].title and p.url.startswith("https://www.inven.co.kr/board/webzine/2097/")

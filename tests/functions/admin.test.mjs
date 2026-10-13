@@ -12,9 +12,9 @@ sources:
   - id: clien
     name: 클리앙 추천글
     enabled: false
-  - id: dieselmania
-    name: 디젤매니아
-    kind: naver_cafe
+  - id: newsite
+    name: 새 게시판
+    kind: rss
 signals:
   google_trends: {}
 `;
@@ -22,12 +22,12 @@ signals:
 test("sources.yaml 읽기·켜기끄기: 주석과 다른 줄은 그대로", () => {
   const s = admin.parseSources(SOURCES);
   assert.deepEqual(s.map((x) => [x.id, x.name, x.enabled, x.kind]),
-    [["dcbest", "디시 실시간 베스트", true, "html_list"], ["clien", "클리앙 추천글", false, "html_list"], ["dieselmania", "디젤매니아", true, "naver_cafe"]]);
+    [["dcbest", "디시 실시간 베스트", true, "html_list"], ["clien", "클리앙 추천글", false, "html_list"], ["newsite", "새 게시판", true, "rss"]]);
   const off = admin.setEnabled(SOURCES, "dcbest", false);
   assert.ok(off.includes("    enabled: false   # 메모"));
   assert.equal(off.split("\n").length, SOURCES.split("\n").length);
-  const on = admin.setEnabled(SOURCES, "dieselmania", false);  // enabled 줄이 없으면 추가
-  assert.equal(admin.parseSources(on).find((x) => x.id === "dieselmania").enabled, false);
+  const on = admin.setEnabled(SOURCES, "newsite", false);  // enabled 줄이 없으면 추가
+  assert.equal(admin.parseSources(on).find((x) => x.id === "newsite").enabled, false);
   assert.throws(() => admin.setEnabled(SOURCES, "nope", true));
 });
 
