@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import os
 import subprocess
+from pathlib import Path
 import sys
 
 from trendbot import storage
@@ -80,13 +81,30 @@ def cmd_snapshot(cfg: dict) -> int:
     return 1 if failures and failures >= len(cfg["sources"]) else 0
 
 
+SIGNAL_NAMES = {"google_trends": "구글 트렌드", "google_news": "구글 뉴스", "ent_news": "다음 연예 많이 본 뉴스",
+                "x_trends": "X 실시간 트렌드", "youtube": "유튜브 급상승", "youtube_chart": "유튜브 인기 차트",
+                "instagram": "인스타 감시 계정"}
+
+
 def _health_rows(cfg: dict) -> list[dict]:
+    """상태 탭용: 커뮤니티(켜기·끄기 가능)와 검색·뉴스·SNS 신호의 최근 수집 결과."""
     from datetime import datetime, timedelta
+    from trendbot.collectors import instagram
     db = storage.connect()
     h = storage.source_health(db, (datetime.now().astimezone() - timedelta(hours=26)).isoformat())
-    return [{"name": s["name"], "enabled": s.get("enabled", True), "verified": s.get("verified", False),
-             "ok": h.get(s["id"], {}).get("ok", False), "message": h.get(s["id"], {}).get("message") or "수집 기록 없음"}
-            for s in cfg["sources"]]
+
+    def row(sid, name, group, enabled):
+        r = h.get(sid, {})
+        return {"id": sid, "name": name, "group": group, "enabled": enabled, "ok": r.get("ok", False),
+                "rows": r.get("rows"), "at": r.get("at"), "message": r.get("message") or "수집 기록 없음"}
+
+    rows = [row(s["id"], s["name"], "community", s.get("enabled", True)) for s in cfg["sources"]]
+    for sid, sc in cfg["signals"].items():
+        if sc.get("enabled"):
+            rows.append(row(sid, SIGNAL_NAMES.get(sid, sid), "signal", True))
+    if instagram.configured():
+        rows.append(row("instagram", SIGNAL_NAMES["instagram"], "signal", True))
+    return rows
 
 
 def cmd_build_site(cfg: dict) -> None:
@@ -126,8 +144,13 @@ def cmd_deploy() -> None:
     # 이미 있으면 실패해도 괜찮음
     subprocess.run(wrangler + ["project", "create", project, "--production-branch", "main"], cwd=ROOT, shell=win,
                    capture_output=True)
-    subprocess.run(wrangler + ["deploy", str(ROOT / "public"), "--project-name", project, "--branch", "main",
-                               "--commit-dirty=true"], check=True, cwd=ROOT, shell=win)
+    # 서버 기능(관리 버튼·피드백)은 실행 위치의 functions/ 폴더에서 읽히므로, 임시 폴더에 functions/를 두고 그 안에서 올림
+    import shutil
+    import tempfile
+    with tempfile.TemporaryDirectory() as work:
+        shutil.copytree(ROOT / "site_functions", Path(work) / "functions")
+        subprocess.run(wrangler + ["deploy", str(ROOT / "public"), "--project-name", project, "--branch", "main",
+                                   "--commit-dirty=true"], check=True, cwd=work, shell=win)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -187,9 +210,14 @@ def main(argv: list[str] | None = None) -> int:
     elif args.cmd == "sample":
         from trendbot.site.build import build
         from trendbot.sample import sample_editions
-        out = build(sample_editions(), [
-            {"name": s["name"], "enabled": s.get("enabled", True), "verified": s.get("verified", False),
-             "ok": s.get("enabled", True), "message": ""} for s in cfg["sources"]])
+        from datetime import datetime
+        now = datetime.now().astimezone().isoformat(timespec="seconds")
+        rows = [{"id": s["id"], "name": s["name"], "group": "community", "enabled": s.get("enabled", True),
+                 "ok": s.get("enabled", True), "rows": 20, "at": now, "message": ""} for s in cfg["sources"]]
+        rows += [{"id": k, "name": SIGNAL_NAMES.get(k, k), "group": "signal", "enabled": True, "ok": k != "ent_news",
+                  "rows": 10, "at": now, "message": "timed out" if k == "ent_news" else ""}
+                 for k, v in cfg["signals"].items() if v.get("enabled")]
+        out = build(sample_editions(), rows)
         print(f"견본 사이트 생성: {out / 'index.html'}")
     return 0
 

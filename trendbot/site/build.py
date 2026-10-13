@@ -87,8 +87,18 @@ def build(editions: list[dict], health: list[dict], out: Path = OUT) -> Path:
             shutil.copytree(media_src / e["date"], out / "media" / e["date"], dirs_exist_ok=True)
 
     day = env.get_template("day.html")
+    days = [{"date": e["date"], "label": _date_label(e["date"]), "count": len(e["cards"])} for e in editions]
+    for i, e in enumerate(editions):  # editions는 최신순: 앞 = 다음 날, 뒤 = 이전 날
+        e["nav"] = {"next": editions[i - 1]["date"] if i > 0 else None,
+                    "prev": editions[i + 1]["date"] if i + 1 < len(editions) else None}
     for e in editions:
-        (out / "d" / f"{e['date']}.html").write_text(day.render(e=e, root="../", page="day"), encoding="utf-8")
+        (out / "d" / f"{e['date']}.html").write_text(day.render(e=e, days=days, root="../", page="day"), encoding="utf-8")
+    cfg = load_config()
+    # 기록 페이지가 있는 커뮤니티만 링크 (지금 켜져 있거나, 지난 판 1위로 나온 적 있는 곳)
+    seen = {c["source_id"] for e in editions for c in e["champions"]}
+    channels = [src for src in cfg["sources"]
+                if src.get("champion") and (src.get("enabled", True) or src["id"] in seen)]
+    env.globals["channel_ids"] = {c["id"] for c in channels}
     detail = env.get_template("detail.html")
     for e in editions:
         (out / "d" / e["date"]).mkdir(exist_ok=True)
@@ -101,7 +111,7 @@ def build(editions: list[dict], health: list[dict], out: Path = OUT) -> Path:
                 (out / ch["href"]).write_text(detail.render(c=None, ch_name=ch["name"], posts=[{**ch["post"], "source_name": ch["post"].get("source_name") or ch["name"]}],
                                                             back=f"../../d/{e['date']}.html", root="../../", page="detail"), encoding="utf-8")
     if editions:
-        (out / "index.html").write_text(day.render(e=editions[0], root="", page="today"), encoding="utf-8")
+        (out / "index.html").write_text(day.render(e=editions[0], days=days, root="", page="today"), encoding="utf-8")
     else:
         (out / "index.html").write_text("<!doctype html><meta charset=utf-8><p>아직 발행된 판이 없습니다.</p>", encoding="utf-8")
 
@@ -128,11 +138,6 @@ def build(editions: list[dict], health: list[dict], out: Path = OUT) -> Path:
                                                page="status"),
         encoding="utf-8")
     # 채널 페이지: 날짜별 종합 1위 기록 + 조회·댓글·좋아요별 1위
-    cfg = load_config()
-    # 지금 꺼진 채널도 지난 판에 1위로 나온 적이 있으면 기록 페이지를 만듦 (링크가 깨지지 않게)
-    seen = {c["source_id"] for e in editions for c in e["champions"]}
-    channels = [src for src in cfg["sources"]
-                if src.get("champion") and (src.get("enabled", True) or src["id"] in seen)]
     (out / "channel").mkdir(exist_ok=True)
     ch_tpl = env.get_template("channel.html")
     for src in channels:
@@ -150,6 +155,5 @@ def build(editions: list[dict], health: list[dict], out: Path = OUT) -> Path:
             encoding="utf-8")
     (out / "robots.txt").write_text("User-agent: *\nDisallow: /\n", encoding="utf-8")
     (out / "_headers").write_text("/*\n  X-Robots-Tag: noindex, nofollow\n  Referrer-Policy: no-referrer\n", encoding="utf-8")
-    if FUNCTIONS_SRC.exists():
-        shutil.copytree(FUNCTIONS_SRC, out / "functions")
+    # 서버 기능 코드(site_functions)는 사이트 파일에 넣지 않음: 배포 때 따로 올림 (cmd_deploy)
     return out

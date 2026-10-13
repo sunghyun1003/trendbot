@@ -28,7 +28,7 @@ def sample_editions() -> list[dict]:
                {"name": "더쿠 HOT", "at": "11:20"}, {"name": "네이트판", "at": "15:00"}],
               [_post("theqoo", "더쿠 HOT", "[견본] 구름빵 크림 먹어본 후기 다들 어때", 81000, None, 1203),
                _post("dcbest", "디시 실시간 베스트", "[견본] 편의점 세 군데 돌았는데 다 품절", 180000, 2100, 640),
-               _post("natepann", "네이트판", "[견본] 요즘 구름빵 크림 때문에 편의점 알바 힘들다", 52000, 310, 420)],
+               _post("cook82", "82쿡 자유게시판", "[견본] 요즘 구름빵 크림 때문에 편의점 알바 힘들다", 52000, 310, 420)],
               96, ["P1", "P3", "P5", "P6"], 5,
               videos=[{"title": "[견본] 구름빵 크림 솔직 리뷰", "url": "#", "views": 1200000, "shorts": True}]),
         _card(2, "A", ["NEW", "전국구", "남녀공통"], "[견본] 지하철 안내방송 패러디 밈 확산",
@@ -54,7 +54,7 @@ def sample_editions() -> list[dict]:
               "어제 이후 새 독자층 2곳에 퍼짐 (견본)", "사회/사건", ["이슈/사건", "논란"],
               "여 30~50대 중심 (확산 기반 추정)", "브랜드 주의",
               [{"name": "네이트판", "at": "어제"}, {"name": "82쿡", "at": "09:20"}, {"name": "보배드림", "at": "13:40"}],
-              [_post("natepann", "네이트판", "[견본] 주차 문제로 이웃과 갈등 후기", 120000, 900, 1500)],
+              [_post("cook82", "82쿡 자유게시판", "[견본] 주차 문제로 이웃과 갈등 후기", 120000, 900, 1500)],
               48, ["P3", "P6"], 3, context="제목만", caution=True),
     ]
     img = lambda a, b: ("data:image/svg+xml;utf8," + f"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'>"
@@ -79,9 +79,8 @@ def sample_editions() -> list[dict]:
         {"source_id": "ppomppu_deal", "name": "뽐뿌 핫딜", "post": _post("ppomppu_deal", "뽐뿌 핫딜", "[견본] 무선 이어폰 역대가 특가", 41000, 88, 650), "strength": "평소 수준"},
         {"source_id": "dcbest", "name": "디시 실시간 베스트", "post": cards[0]["posts"][1], "in_card": 1, "strength": "역대급"},
         {"source_id": "theqoo", "name": "더쿠 HOT", "post": cards[0]["posts"][0], "in_card": 1, "strength": "강함"},
-        {"source_id": "natepann", "name": "네이트판", "post": _post("natepann", "네이트판", "[견본] 시댁 김장 문제로 고민입니다", 98000, 1200, 2100), "strength": "평소 수준"},
         {"source_id": "instiz", "name": "인스티즈", "post": cards[1]["posts"][1], "in_card": 2, "strength": "평소 수준"},
-        {"source_id": "clien", "name": "클리앙 추천글", "post": _post("clien", "클리앙", "[견본] 새 노트북 배터리 실측 결과", 21000, 140, 230), "strength": "평소 수준"},
+        {"source_id": "fmkorea", "name": "에펨코리아", "post": _post("fmkorea", "에펨코리아", "[견본] 새 노트북 배터리 실측 결과", 21000, 140, 230), "strength": "평소 수준"},
         {"source_id": "ruliweb", "name": "루리웹 베스트", "post": _post("ruliweb", "루리웹", "[견본] 신작 게임 첫날 동접 기록", 45000, 520, 380), "strength": "강함"},
         {"source_id": "bobaedream", "name": "보배드림 베스트", "post": _post("bobaedream", "보배드림", "[견본] 블랙박스에 찍힌 아찔한 순간", 76000, 640, 510), "strength": "평소 수준"},
         {"source_id": "cook82", "name": "82쿡", "post": _post("cook82", "82쿡", "[견본] 김장 비용 올해 얼마나 드셨어요", 15000, None, 180), "strength": "평소 수준"},

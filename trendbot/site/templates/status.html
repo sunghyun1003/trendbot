@@ -1,21 +1,36 @@
 {% extends "base.html" %}
 {% block title %}ㄷㅅㅂㄱ · 상태{% endblock %}
-{% set FIX = {'차단': '우회하지 않고 꺼 둠', '기록 없음': '다음 수집 때 확인'} %}
-{% block body %}
-<div class="feed-col single">
-  {% set bad = sources|selectattr('enabled')|rejectattr('ok')|list %}
-  <section class="hero">
-    <div class="hero-d">수집 상태{% if e %} · {{ e.date[5:]|replace('-','.') }}{% endif %}</div>
-    <div class="hero-n"><b class="{{ 'bad' if bad }}">{{ (sources|selectattr('enabled')|list|length) - bad|length }}/{{ sources|selectattr('enabled')|list|length }}</b><span>{{ '정상' if not bad else '정상 작동' }}</span></div>
-  </section>
+{% macro why(m) -%}
+{%- if '403' in m or '차단' in m or '430' in m -%}사이트가 접속을 막음 (우회 안 함)
+{%- elif 'timed out' in m or 'Timeout' in m or 'reset' in m -%}응답 지연, 다음 수집 때 다시 시도
+{%- elif '하나도' in m -%}화면 구조가 바뀜, 수리 필요
+{%- elif '기록 없음' in m -%}아직 수집 전
+{%- else -%}수리 필요
+{%- endif -%}
+{%- endmacro %}
+{% macro rows(list, switch) %}
   <ul class="health">
-    {% for s in sources %}
-    <li class="{{ 'off' if not s.enabled else ('ok' if s.ok else 'bad') }}">
+    {% for s in list %}
+    <li class="{{ 'off' if not s.enabled else ('ok' if s.ok else 'bad') }}" {% if switch %}data-src="{{ s.id }}"{% endif %}>
       <span class="dot"></span><b>{{ s.name }}</b>
-      <span>{% if not s.enabled %}꺼짐{% elif not s.ok %}{% for k, v in FIX.items() if k in s.message %}{{ v }}{% else %}고장 수리 필요{% endfor %}{% endif %}</span>
+      <span class="st">{% if not s.enabled %}꺼짐{% elif s.ok %}<time data-at="{{ s.at }}">{{ (s.at or '')[11:16] }}</time>{% if s.rows is not none %} · {{ s.rows }}건{% endif %}{% else %}{{ why(s.message) }}{% endif %}</span>
     </li>
     {% endfor %}
   </ul>
+{% endmacro %}
+{% block body %}
+<div class="feed-col single">
+  {% set on = sources|selectattr('enabled')|list %}
+  {% set bad = on|rejectattr('ok')|list %}
+  <section class="hero">
+    <div class="hero-d">수집 상태 · 최근 26시간</div>
+    <div class="hero-n"><b class="{{ 'bad' if bad }}">{{ on|length - bad|length }}/{{ on|length }}</b><span>{{ '모두 정상' if not bad else '정상' }}</span></div>
+  </section>
+
+  <h2 class="sec-h">커뮤니티 <small>2시간마다 인기글 수집</small></h2>
+  {{ rows(sources|selectattr('group', 'equalto', 'community')|list, true) }}
+  <h2 class="sec-h">검색·뉴스·SNS·영상</h2>
+  {{ rows(sources|selectattr('group', 'equalto', 'signal')|list, false) }}
 
   {% if e and e.benchmark %}{% set b = e.benchmark %}
   <section class="bench">
@@ -53,10 +68,8 @@
     <div class="adm-btns"><button class="btn ghost" id="ig-save">저장</button></div>
     <p class="adm-note">비즈니스·크리에이터 계정만 읽을 수 있어요. 인스타 키를 넣기 전까지는 저장만 되고 수집은 하지 않아요.</p>
 
-    <h2>사이트 켜기·끄기</h2>
-    <ul class="health" id="srcs"></ul>
   </section>
-  <p class="adm-note" id="admin-off" hidden>관리 버튼은 배포된 사이트에서 로그인했을 때만 보여요.</p>
+  <p class="adm-note" id="admin-off" hidden>관리 버튼(지금 수집·발행, 켜기·끄기, 키 확인)을 불러오지 못했어요. 로그인한 상태에서 새로고침해 보세요.</p>
 </div>
 {% endblock %}
 
@@ -79,7 +92,10 @@ async function load(){
   $('#keys').innerHTML=d.keys.map(k=>`<li class="${k.ok?'ok':(k.required?'bad':'off')}"><span class="dot"></span><b>${esc(k.label)}</b><span>${k.ok?'✓':(add?`<a href="${add}" target="_blank" rel="noopener">넣기 (${k.name})</a>`:'✗')}</span></li>`).join('');
   $('#keys-note').innerHTML=d.ready?(d.repo?`키를 넣거나 바꾼 뒤에는 <a href="https://github.com/${d.repo}/actions/workflows/setup.yml" target="_blank" rel="noopener">처음 설정</a>을 한 번 더 눌러 주세요.`:''):'DASHBOARD_TOKEN을 넣고 처음 설정을 다시 실행하면 버튼이 켜져요.';
   $('#ig').value=(d.instagram||[]).join('\n');
-  $('#srcs').innerHTML=d.sources.map(s=>`<li class="${s.enabled?'ok':'off'}"><span class="dot"></span><b>${esc(s.name)}</b><span><label class="sw"><input type="checkbox" data-src="${esc(s.id)}" ${s.enabled?'checked':''}><i></i></label></span></li>`).join('');
+  const en=Object.fromEntries((d.sources||[]).map(s=>[s.id,s.enabled]));
+  document.querySelectorAll('li[data-src]').forEach(li=>{ if(!(li.dataset.src in en)) return;
+    const lab=document.createElement('label'); lab.className='sw'; lab.title='켜기·끄기';
+    lab.innerHTML=`<input type="checkbox" data-src="${esc(li.dataset.src)}" ${en[li.dataset.src]?'checked':''}><i></i>`; li.appendChild(lab);});
 }
 document.addEventListener('click',async ev=>{
   const b=ev.target.closest('[data-run]');if(b){b.disabled=true;await call({action:'run',task:b.dataset.run});setTimeout(load,4000);b.disabled=false;}
@@ -87,6 +103,9 @@ document.addEventListener('click',async ev=>{
 });
 document.addEventListener('change',async ev=>{const c=ev.target.closest('[data-src]');if(!c)return;
   if(!await call({action:'toggle',id:c.dataset.src,enabled:c.checked}))c.checked=!c.checked;});
+// '14:08' → '23분 전'
+document.querySelectorAll('time[data-at]').forEach(t=>{const at=Date.parse(t.dataset.at); if(!at) return;
+  const m=Math.round((Date.now()-at)/60000); t.textContent=m<1?'방금':m<60?m+'분 전':Math.round(m/60)+'시간 전';});
 load();
 </script>
 {% endblock %}

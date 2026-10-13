@@ -11,22 +11,24 @@
 {% block body %}
 <div class="feed-col">
 
-  <section class="hero">
-    <div class="hero-d">{{ e.date_label }}</div>
-    <div class="hero-n"><b>{{ e.cards|length }}</b><span>꼭 알아야 할 것</span></div>
+  {% set champs = e.champions|selectattr('post')|list %}
+  <header class="dayhead">
+    <div class="dsw">
+      {% if e.nav.prev %}<a class="dsw-arr" href="{{ root }}d/{{ e.nav.prev }}.html" aria-label="이전 날">‹</a>{% else %}<span class="dsw-arr off">‹</span>{% endif %}
+      <button class="dsw-btn" id="dpick" aria-haspopup="dialog">{{ e.date_label }}<i>▾</i></button>
+      {% if e.nav.next %}<a class="dsw-arr" href="{{ root }}d/{{ e.nav.next }}.html" aria-label="다음 날">›</a>{% else %}<span class="dsw-arr off">›</span>{% endif %}
+    </div>
     {% if e.mood %}<span class="mood m-{{ e.mood[:2] }}"><i></i>{{ e.mood }}</span>{% endif %}
-  </section>
+  </header>
 
-  <section class="stories" aria-label="채널 1위">
-    {% for ch in e.champions if ch.post %}
-    <a class="story {{ 's-hot' if ch.strength in ('강함','역대급') }} {{ 's-max' if ch.strength=='역대급' }}" href="{{ root }}{{ ch.href }}">
-      <span class="ring"><span class="bubble">{{ ch.name|short }}</span></span>
-      <span class="story-l">{{ ch.name|short_label }}</span>
-    </a>
-    {% endfor %}
-  </section>
+  <nav class="seg" role="tablist">
+    <button class="seg-b on" role="tab" data-tab="must">꼭 알아야 할 것<b>{{ e.cards|length }}</b></button>
+    <button class="seg-b" role="tab" data-tab="champ">커뮤니티별 1위<b>{{ champs|length }}</b></button>
+  </nav>
 
-  {% if not e.cards %}<div class="empty"><b>조용한 하루</b>기준을 넘은 이야기가 없어요. 채널 1위만 확인하세요</div>{% endif %}
+  <section class="tab" id="tab-must">
+  <p class="tab-desc">여러 커뮤니티·검색·SNS에 <b>동시에 퍼진 이야기</b>만 골랐어요. 이것만 보면 오늘 대화에서 안 빠져요.</p>
+  {% if not e.cards %}<div class="empty"><b>조용한 하루</b>여러 곳에 동시에 퍼진 이야기가 없었어요.<button class="link-btn" data-goto="champ">커뮤니티별 1위 보기 ›</button></div>{% endif %}
 
   {% for c in e.cards %}
   {% set vid = (c.videos[0].url|ytid) if c.videos else None %}
@@ -89,26 +91,50 @@
   </section>
   {% endif %}
 
-  {% if e.champions|selectattr('post')|list %}
-  <section class="champ-list" aria-label="채널 1위">
-    <div class="rail-h">채널 1위</div>
-    {% for ch in e.champions if ch.post %}
-    <a class="ch" href="{{ root }}{{ ch.href }}"><span class="ch-b {{ 's-hot' if ch.strength in ('강함','역대급') }}">{{ ch.name|short }}</span><span class="ch-t">{{ ch.post.title }}</span>{% if ch.strength in ('강함','역대급') %}<i class="ch-s">{{ ch.strength }}</i>{% endif %}</a>
-    {% endfor %}
   </section>
-  {% endif %}
+
+  <section class="tab" id="tab-champ" hidden>
+  <p class="tab-desc">커뮤니티마다 오늘 <b>반응이 가장 컸던 글 1개</b>씩이에요. 그 커뮤니티 사람들이 오늘 본 글이라, 모두가 알아야 하는 건 아니에요.</p>
+  <ul class="cfeed">
+    {% for ch in champs %}
+    {% set o = ch.post.original or {} %}
+    {% set th = (root ~ o.saved[0].file) if o.saved else ((root ~ o.capture[0]) if o.capture else None) %}
+    <li><a href="{{ root }}{{ ch.href }}">
+      <span class="cf-th">{% if th %}<img src="{{ th }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}<i>{{ ch.name|short }}</i></span>
+      <span class="cf-b">
+        <span class="cf-n">{{ ch.name }}{% if ch.strength in ('강함','역대급') %}<em class="cf-s {{ 'max' if ch.strength == '역대급' }}">{{ ch.strength }}</em>{% endif %}{% if ch.in_card %}<em class="cf-c">꼭 알아야 할 것 {{ ch.in_card }}번</em>{% endif %}</span>
+        <span class="cf-t">{{ ch.post.title }}</span>
+        <span class="cf-m">{% if ch.post.views %}{{ icon('eye') }}{{ ch.post.views|num }}{% endif %}{% if ch.post.likes %}{{ icon('thumb') }}{{ ch.post.likes|num }}{% endif %}{% if ch.post.comments %}{{ icon('chat') }}{{ ch.post.comments|num }}{% endif %}</span>
+      </span>
+    </a></li>
+    {% endfor %}
+  </ul>
+  {% if not champs %}<div class="empty"><b>아직 없어요</b>수집이 쌓이면 채워져요</div>{% endif %}
+  </section>
 
   <div class="fin">{{ logo('mini') }}</div>
 </div>
 
 <aside class="rail">
-  <div class="rail-card champs">
-    <div class="rail-h">채널 1위</div>
-    {% for ch in e.champions if ch.post %}
-    <a class="ch" href="{{ root }}{{ ch.href }}"><span class="ch-b {{ 's-hot' if ch.strength in ('강함','역대급') }}">{{ ch.name|short }}</span><span class="ch-t">{{ ch.post.title }}</span>{% if ch.strength in ('강함','역대급') %}<i class="ch-s">{{ ch.strength }}</i>{% endif %}</a>
-    {% endfor %}
+  <div class="rail-card">
+    <div class="rail-h">날짜별 판</div>
+    <nav class="dlist">
+      {% for d in days %}<a class="{{ 'on' if d.date == e.date }}" href="{{ root }}d/{{ d.date }}.html"><span>{{ d.label }}</span><b>{{ d.count }}</b></a>{% endfor %}
+    </nav>
+  </div>
+  <div class="rail-card guide">
+    <p><b>꼭 알아야 할 것</b> 여러 커뮤니티·검색·SNS에 동시에 퍼진 이야기</p>
+    <p><b>커뮤니티별 1위</b> 각 커뮤니티에서 오늘 반응이 가장 컸던 글</p>
   </div>
 </aside>
+
+<dialog class="sheet" id="dates">
+  <span class="grab"></span>
+  <h3>날짜 고르기</h3>
+  <nav class="dlist">
+    {% for d in days %}<a class="{{ 'on' if d.date == e.date }}" href="{{ root }}d/{{ d.date }}.html"><span>{{ d.label }}</span><b>{{ d.count }}</b></a>{% endfor %}
+  </nav>
+</dialog>
 
 <button class="fab" id="fab" aria-label="놓친 것 제보">{{ icon('plus') }}</button>
 
@@ -148,6 +174,15 @@ document.querySelectorAll('.post').forEach(el=>{
     save(); mark();});
 });
 document.querySelectorAll('.restore').forEach(b=>b.addEventListener('click',()=>{send({card:b.dataset.card,action:'restore'});b.textContent='✓';}));
+// 탭: 꼭 알아야 할 것 / 커뮤니티별 1위 (주소 #champ 로 바로 열림)
+function tab(name){document.querySelectorAll('.seg-b').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));
+  document.querySelectorAll('.tab').forEach(t=>t.hidden=t.id!=='tab-'+name);
+  history.replaceState(null,'',name==='champ'?'#champ':location.pathname+location.search);}
+document.querySelectorAll('[data-tab],[data-goto]').forEach(b=>b.addEventListener('click',()=>{tab(b.dataset.tab||b.dataset.goto);window.scrollTo({top:0});}));
+if(location.hash==='#champ') tab('champ');
+const dates=$('#dates');
+$('#dpick').addEventListener('click',()=>dates.showModal());
+dates.addEventListener('click',e=>{if(e.target===dates) dates.close();});
 const tip=$('#tip');
 [tip].forEach(d=>d.addEventListener('click',e=>{if(e.target===d) d.close();}));
 $('#fab').addEventListener('click',()=>{tip.showModal(); tip.querySelector('input').focus();});

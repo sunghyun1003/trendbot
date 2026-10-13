@@ -1,0 +1,13 @@
+# 임시: 새 화면 + 서버 기능 배포 수정 반영을 위한 발행 1회 (확인 후 삭제)
+name: verify
+on:
+  push:
+    paths: [".github/workflows/verify.yml"]
+permissions:
+  contents: write
+jobs:
+  publish:
+    uses: ./.github/workflows/run.yml
+    with:
+      task: publish
+    secrets: inherit

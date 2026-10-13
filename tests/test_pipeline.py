@@ -18,9 +18,9 @@ def _seed(db, at, extra=()):
         Post("dcbest", "구름빵크림 편의점 세 군데 다 품절", "https://d/1", 1, 180000, 2100, 640),
         Post("ppomppu_hot", "구름빵크림 편의점 재고 품절 정보", "https://p/1", 2, 31000, 45, 260),
         Post("theqoo", "구름빵크림 먹어본 후기 편의점 품절", "https://q/1", 1, 81000, None, 1203),
-        Post("natepann", "요즘 구름빵크림 때문에 편의점 알바 힘들다", "https://n/1", 3, 52000, 310, 420),
+        Post("instiz", "요즘 구름빵크림 때문에 편의점 알바 힘들다", "https://n/1", 3, 52000, 310, 420),
         # 남초 2곳만 → 검색 신호 없으면 탈락
-        Post("clien", "새 노트북 배터리 실측 결과", "https://c/1", 1, 21000, 140, 230),
+        Post("bobaedream", "새 노트북 배터리 실측 결과", "https://c/1", 1, 21000, 140, 230),
         Post("ruliweb", "노트북 배터리 실측 대결", "https://r/1", 4, 9000, 30, 40),
         # 아무 데도 안 퍼진 글
         Post("cook82", "김장 비용 올해 얼마나 드셨어요", "https://k/1", 1, 15000, None, 180),
@@ -28,7 +28,7 @@ def _seed(db, at, extra=()):
     ]
     storage.save_posts(db, posts, at)
     storage.save_signals(db, [Signal("google_trends", "구름빵크림", value=50000)], at)
-    for s in ("dcbest", "ppomppu_hot", "theqoo", "natepann", "clien", "ruliweb", "cook82"):
+    for s in ("dcbest", "ppomppu_hot", "theqoo", "instiz", "bobaedream", "ruliweb", "cook82"):
         storage.log_run(db, s, True, 1)
 
 
