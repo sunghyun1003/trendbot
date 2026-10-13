@@ -17,6 +17,25 @@
     {% endfor %}
   </ul>
 
+  {% if e and e.benchmark %}{% set b = e.benchmark %}
+  <section class="bench">
+    <h2>외부 기준 대조 <small>{{ b.source }}</small></h2>
+    <div class="bench-n">
+      <div><b>{{ b.in_edition }}<i>/{{ b.total }}</i></b><span>판에 오름</span></div>
+      <div><b>{{ b.collected }}<i>/{{ b.total }}</i></b><span>수집됨</span></div>
+    </div>
+    {% if b.missed %}
+    <ul class="health">
+      {% for m in b.missed %}
+      <li class="{{ 'ok' if m.collected else 'bad' }}"><span class="dot"></span>
+        <div class="bm"><b>{{ m.title }}</b><small>{{ m.site }} · {{ b.metric or '조회' }} {{ m.views|num }} · {{ '수집됨, 판에서 빠짐' if m.collected else '수집 안 됨' }}</small></div></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    <p class="adm-note">이슈링크가 하루 동안 많이 본 커뮤니티 글 중, 우리가 수집하는 사이트의 상위 {{ b.total }}개와 비교한 결과예요. '수집됨, 판에서 빠짐'이 많으면 판정 기준을, '수집 안 됨'이 많으면 수집 범위를 손볼 차례예요.</p>
+  </section>
+  {% endif %}
+
   <section class="admin" id="admin" hidden>
     <h2>지금 실행</h2>
     <div class="adm-btns">

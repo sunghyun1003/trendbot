@@ -448,3 +448,16 @@ svg { display: block; flex: none; }
 .sw input:checked + i::after { transform: translateX(18px); }
 .adm-ta { width: 100%; box-sizing: border-box; border: 0; border-radius: var(--r-md); background: var(--surface); color: var(--t1);
   padding: 14px 16px; font: inherit; font-size: 15px; line-height: 1.6; box-shadow: var(--shadow); margin-bottom: 10px; resize: vertical; }
+
+/* 상태 탭: 외부 기준 대조 */
+.bench h2 { font-size: 17px; font-weight: 800; margin: 32px 4px 10px; letter-spacing: -0.02em; }
+.bench h2 small { font-size: 12px; font-weight: 600; color: var(--t3); margin-left: 6px; }
+.bench-n { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.bench-n div { background: var(--surface); border-radius: var(--r-lg); padding: 16px 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.bench-n b { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; }
+.bench-n b i { font-style: normal; font-size: 15px; color: var(--t3); font-weight: 700; }
+.bench-n span { font-size: 13px; color: var(--t3); font-weight: 600; }
+.bench .bm { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.bench .bm b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bench .bm small { font-size: 12px; color: var(--t3); }
+.bench .bad .bm small { color: var(--rec); }

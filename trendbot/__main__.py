@@ -103,6 +103,14 @@ def cmd_daily(cfg: dict, use_ai: bool, deploy: bool) -> None:
     print(feedback.pull(db))
     media.prune()
     edition = build_edition(db, cfg, use_ai=use_ai)
+    try:  # 외부 기준(이슈링크) 대조: 실패해도 발행은 계속
+        from trendbot import benchmark
+        edition["benchmark"] = benchmark.run(db, edition)
+        if edition["benchmark"]:
+            b = edition["benchmark"]
+            print(f"외부 기준 대조: 이슈링크 상위 {b['total']}개 중 수집 {b['collected']}, 판에 오름 {b['in_edition']}")
+    except Exception as e:
+        print(f"외부 기준 대조 실패: {e}")
     storage.save_edition(db, edition)
     print(f"오늘의 필수 {len(edition['cards'])}건, 채널 1위 {sum(1 for c in edition['champions'] if c['post'])}줄")
     cmd_build_site(cfg)

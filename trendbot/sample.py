@@ -101,4 +101,7 @@ def sample_editions() -> list[dict]:
     yesterday = {**today, "date": "2026-10-12", "generated_at": "2026-10-12T07:30:00+09:00",
                  "cards": copy.deepcopy(cards[1:3]), "mood": "조용한 날", "overflow": [], "excluded": [],
                  "champions": [{**copy.deepcopy(c), "in_card": None} for c in champs]}
+    today["benchmark"] = {"source": "이슈링크 커뮤니티 베스트 1일", "total": 40, "collected": 31, "in_edition": 12, "missed": [
+        {"site": "더쿠", "title": "[견본] 수집은 됐지만 판에서 빠진 글", "views": 52000, "collected": True},
+        {"site": "인벤", "title": "[견본] 수집 범위 밖이라 놓친 글이 아주 길게 이어지는 제목 예시입니다", "views": 31000, "collected": False}]}
     return [today, yesterday]

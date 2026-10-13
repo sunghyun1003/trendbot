@@ -70,6 +70,12 @@ def render(src_rows: list[dict], orig_rows: list[dict], edition: dict | None) ->
         lines += ["## 2. 오늘의 판", "",
                   f"- 필수 카드 {len(edition.get('cards', []))}장, 채널 1위 {sum(1 for c in edition.get('champions', []) if c.get('post'))}줄",
                   f"- AI 편집: {'사용' if (edition.get('ai') or {}).get('used') else '안 함'} {(edition.get('ai') or {}).get('note') or ''}", ""]
+    b = (edition or {}).get("benchmark")
+    if b:
+        lines += [f"## 외부 기준 대조 ({b['source']})", "",
+                  f"- 상위 {b['total']}개 중 수집됨 {b['collected']}, 판에 오름 {b['in_edition']}", ""]
+        lines += [f"  - [{m['site']}] {m['title']} ({b.get('metric', '조회')} {m['views']}) — {'수집됨, 판에서 빠짐' if m['collected'] else '수집 안 됨'}"
+                  for m in b["missed"]] + [""]
     lines += ["## 3. 원문 가져오기 (화면에 올라간 글만)", "",
               "| 위치 | 제목 | 결과 | 본문 글자 | 사진 주소 | 사진 저장 | 캡처 | 베스트 댓글 |", "|---|---|---|---|---|---|---|---|"]
     for r in orig_rows:
