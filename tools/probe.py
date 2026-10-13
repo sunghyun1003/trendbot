@@ -1,4 +1,4 @@
-"""집 PC 첫 점검: 사이트마다 접속·robots.txt·차단 여부를 확인하고, 화면 샘플을 저장합니다.
+"""사이트 점검 (수리용): 사이트마다 접속·robots.txt·차단 여부를 확인하고, 화면 샘플을 저장합니다.
 
 실행: python -m trendbot probe
 결과: data/probe_report.md (표), tests/fixtures/<소스>.html (화면 샘플)
@@ -45,55 +45,13 @@ def _probe_html(src: dict) -> dict:
     return res
 
 
-def _probe_naver(src: dict) -> dict:
-    res = {"id": src["id"], "name": src["name"], "robots": "-", "fetch": "", "rows": 0, "sample": ""}
-    try:
-        from playwright.sync_api import sync_playwright
-
-        from trendbot.collectors import naver_cafe
-        payloads, urls = [], []
-        with sync_playwright() as pw:
-            ctx = pw.chromium.launch_persistent_context(str(naver_cafe.PROFILE_DIR), headless=False, locale="ko-KR")
-            page = ctx.new_page()
-
-            def on_resp(r):
-                if "json" in (r.headers.get("content-type") or "") and "naver" in r.url:
-                    urls.append(r.url)
-                    try:
-                        payloads.append(r.json())
-                    except Exception:
-                        pass
-
-            page.on("response", on_resp)
-            page.goto(src["cafe_url"], wait_until="networkidle")
-            cafe_id = naver_cafe._find_cafe_id(page.content())
-            page.screenshot(path=str(FIX / f"{src['id']}_home.png"))
-            if cafe_id:
-                page.goto(naver_cafe.POPULAR_URL.format(cafe_id=cafe_id), wait_until="networkidle")
-                page.wait_for_timeout(2500)
-                page.screenshot(path=str(FIX / f"{src['id']}_popular.png"), full_page=True)
-            ctx.close()
-        posts = naver_cafe.articles_to_posts(payloads, src, cafe_id or "?")
-        (FIX / f"{src['id']}_responses.json").write_text(
-            json.dumps({"cafe_id": cafe_id, "urls": urls, "payloads": payloads}, ensure_ascii=False)[:3_000_000],
-            encoding="utf-8")
-        res["fetch"] = f"카페번호 {cafe_id}, 응답 {len(payloads)}개"
-        res["rows"] = len(posts)
-        if posts:
-            p = posts[0]
-            res["sample"] = f"{p.title[:30]} | 조회 {p.views} 좋아요 {p.likes} 댓글 {p.comments}"
-    except Exception as e:
-        res["fetch"] = f"실패: {e.__class__.__name__} {str(e)[:80]} (먼저 naver-login을 했는지 확인)"
-    return res
-
-
 def run(cfg: dict) -> None:
     FIX.mkdir(parents=True, exist_ok=True)
     DATA_DIR.mkdir(exist_ok=True)
     results = []
     for src in cfg["sources"]:
         print(f"점검 중: {src['name']} ...")
-        r = _probe_naver(src) if src.get("kind") == "naver_cafe" else _probe_html(src)
+        r = _probe_html(src)
         results.append(r)
         print(f"  → {r['fetch']} / 읽은 줄 {r['rows']}")
     for name in ("google_trends", "google_news"):

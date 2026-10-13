@@ -1,4 +1,4 @@
-"""원문 이미지 저장과 본문 캡처 (집 PC에서 실행).
+"""원문 이미지 저장과 본문 캡처 (GitHub 서버에서 발행 때 실행).
 
 - 화면에 올라가는 글(발행 카드·채널 1위)의 이미지만 내려받습니다. 글당 최대 8장.
 - 긴 변 1080px, webp로 줄여 data/media/<날짜>/ 에 저장하고, 사이트를 만들 때 함께 올립니다.
@@ -77,21 +77,6 @@ def download_images(srcs: list[str], page_url: str, day: str, client: httpx.Clie
     return saved
 
 
-def adopt(saved: list[dict], day: str) -> list[dict]:
-    """다른 날짜 폴더에 있는 저장본을 오늘 폴더로 복사 (사이트는 그날 폴더만 올리므로). 없는 파일은 뺌."""
-    out = []
-    for s in saved:
-        src = DATA_DIR / s["file"]
-        dst = MEDIA_DIR / day / src.name
-        if not src.exists() and not dst.exists():
-            continue
-        if not dst.exists():
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dst)
-        out.append({**s, "file": f"media/{day}/{src.name}"})
-    return out
-
-
 def split_tiles(png: bytes, day: str, key: str, tile: int = CAPTURE_TILE) -> list[str]:
     """긴 스크린샷을 세로로 나눠 webp로 저장."""
     from PIL import Image
@@ -131,9 +116,9 @@ def _shoot(page, el) -> bytes:
         return base64.b64decode(res["data"])
 
 
-def capture_body(url: str, selector: str | None, day: str, profile_dir=None) -> list[str]:
+def capture_body(url: str, selector: str | None, day: str) -> list[str]:
     """브라우저로 글을 열어 본문 영역만 캡처. 본문 영역을 못 찾으면 실패로 처리함
-    (페이지 전체를 찍으면 메뉴·닉네임이 섞이기 때문). profile_dir을 주면 로그인된 프로필 사용."""
+    (페이지 전체를 찍으면 메뉴·닉네임이 섞이기 때문)."""
     from playwright.sync_api import sync_playwright
 
     if not selector:
@@ -141,15 +126,11 @@ def capture_body(url: str, selector: str | None, day: str, profile_dir=None) -> 
     png = None
     broken = False
     with sync_playwright() as pw:
-        browser = None
-        if not profile_dir:
-            exe = os.environ.get("TRENDBOT_CHROMIUM")  # 보통은 비워 둠 (playwright install 로 설치된 것 사용)
-            browser = pw.chromium.launch(executable_path=exe) if exe else pw.chromium.launch()
+        exe = os.environ.get("TRENDBOT_CHROMIUM")  # 보통은 비워 둠 (playwright install 로 설치된 것 사용)
+        browser = pw.chromium.launch(executable_path=exe) if exe else pw.chromium.launch()
         for width in (CAPTURE_WIDTH, 900):  # 모바일 폭에서 본문 구조가 다르면 데스크톱 폭으로 재시도
             opts = dict(locale="ko-KR", viewport={"width": width, "height": 900}, device_scale_factor=2)
-            ctx = (pw.chromium.launch_persistent_context(str(profile_dir), headless=True,
-                                                      channel=os.environ.get("TRENDBOT_BROWSER") or None, **opts) if profile_dir
-                   else browser.new_context(user_agent=USER_AGENT, **opts))
+            ctx = browser.new_context(user_agent=USER_AGENT, **opts)
             try:
                 page = ctx.new_page()
                 # 웹폰트가 늦게 오면 캡처가 멈추므로 받지 않음(기본 글꼴로 표시)
@@ -176,8 +157,7 @@ def capture_body(url: str, selector: str | None, day: str, profile_dir=None) -> 
                 ctx.close()
             if png:
                 break
-        if browser:
-            browser.close()
+        browser.close()
     if broken:
         raise CaptureFailed("본문 사진을 하나도 불러오지 못함")
     if not png:

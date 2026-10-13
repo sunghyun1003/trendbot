@@ -1,6 +1,5 @@
 from trendbot.collectors.html_list import parse_list
 from trendbot.collectors.numbers import parse_count
-from trendbot.collectors.naver_cafe import articles_to_posts
 from trendbot.collectors.signals import parse_google_news, parse_google_trends
 
 
@@ -23,13 +22,6 @@ def test_parse_list_generic():
     assert [p.title for p in posts] == ["첫 글", "둘째 글"]
     assert posts[0].url == "https://ex.com/p/1" and posts[0].views == 15000 and posts[0].comments == 3
     assert posts[1].rank == 2
-
-
-def test_naver_cafe_json():
-    payload = {"result": {"articleList": [{"item": {"articleId": 11, "subject": "인기글", "readCount": 2300,
-                                                    "commentCount": 41, "likeItCount": 18}}]}}
-    posts = articles_to_posts([payload], {"id": "dieselmania"}, 123)
-    assert posts[0].views == 2300 and posts[0].likes == 18 and "cafes/123/articles/11" in posts[0].url
 
 
 def test_google_trends_rss():

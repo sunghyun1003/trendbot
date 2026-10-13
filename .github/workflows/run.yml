@@ -1,15 +1,17 @@
-# ㄷㅅㅂㄱ 자동 실행 (GitHub 서버에서 돌아감. 집 PC·설치 필요 없음)
-# - 수집: 하루 5번 / 발행(수집 + 오늘의 판 + 사이트 올리기): 매일 아침
-# - 대시보드의 '지금 수집'·'지금 발행' 버튼도 이 작업을 실행합니다.
+# ㄷㅅㅂㄱ 자동 실행 (GitHub 서버에서 돌아감. 설치 필요 없음)
+# - 정시 실행: Cloudflare '정시 실행기'(worker/scheduler.js)가 06:30 발행, 2시간마다 수집을 시작합니다.
+# - 아래 GitHub 자체 예약은 정시 실행기가 멈췄을 때를 위한 예비입니다 (늦게 돌 수 있음).
+#   예비 발행은 그날 이미 발행됐으면 건너뜁니다.
+# - 대시보드의 '지금 수집'·'지금 발행' 버튼도 이 작업을 실행합니다 (버튼 발행은 항상 실행).
 # - 키는 저장소 Settings → Secrets and variables → Actions 에 넣습니다 (docs/keys-guide.md).
 name: run
 on:
   schedule:
-    - cron: "27 16 * * *"   # 01:27 수집 (한국 시각, 아래 모두 같음)
-    - cron: "37 21 * * *"   # 06:37 발행 (GitHub 예약은 늦어질 수 있어 07:30보다 넉넉히 앞당김)
-    - cron: "57 2 * * *"    # 11:57 수집
-    - cron: "57 7 * * *"    # 16:57 수집
-    - cron: "57 12 * * *"   # 21:57 수집
+    - cron: "27 16 * * *"   # 01:27 예비 수집 (한국 시각, 아래 모두 같음)
+    - cron: "47 21 * * *"   # 06:47 예비 발행 (이미 발행됐으면 건너뜀)
+    - cron: "57 2 * * *"    # 11:57 예비 수집
+    - cron: "57 7 * * *"    # 16:57 예비 수집
+    - cron: "57 12 * * *"   # 21:57 예비 수집
   workflow_call:              # '처음 설정'이 끝나면 첫 발행으로 이어서 부름
     inputs:
       task:
@@ -18,10 +20,10 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "collect = 수집만, publish = 수집 + 발행"
+        description: "collect = 수집만, publish = 수집 + 발행, publish_auto = 오늘 아직 발행 안 했을 때만 발행"
         default: collect
         type: choice
-        options: [collect, publish]
+        options: [collect, publish, publish_auto]
 concurrency:
   group: trendbot-run       # 두 작업이 동시에 데이터를 고치지 않게 차례로 실행
   cancel-in-progress: false
@@ -29,7 +31,7 @@ permissions:
   contents: write           # 데이터(DB)를 data 브랜치에 저장
 env:
   TZ: Asia/Seoul
-  TASK: ${{ github.event_name == 'schedule' && (github.event.schedule == '37 21 * * *' && 'publish' || 'collect') || inputs.task || 'collect' }}
+  TASK: ${{ github.event_name == 'schedule' && (github.event.schedule == '47 21 * * *' && 'publish_auto' || 'collect') || inputs.task || 'collect' }}
   ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
   YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -66,20 +68,23 @@ jobs:
           key: media-${{ github.run_id }}
           restore-keys: media-
 
+      - name: 발행할지 정하기
+        run: |
+          if [ "$TASK" = "publish" ]; then echo "PUBLISH=yes" >> "$GITHUB_ENV"
+          elif [ "$TASK" = "publish_auto" ] && ! python -m trendbot published-today; then echo "PUBLISH=yes" >> "$GITHUB_ENV"
+          else echo "PUBLISH=no" >> "$GITHUB_ENV"; fi
       - name: 수집
         run: python -m trendbot snapshot || echo "일부 사이트 실패 (상태 화면에 표시됨)"
-      - name: 집 PC 도우미가 보낸 디젤매니아 받기
-        run: python -m trendbot inbox
 
       - name: 발행 준비 (브라우저·Node)
-        if: env.TASK == 'publish'
+        if: env.PUBLISH == 'yes'
         run: python -m playwright install --with-deps chromium
       - uses: actions/setup-node@v4
-        if: env.TASK == 'publish'
+        if: env.PUBLISH == 'yes'
         with:
           node-version: "22"
       - name: 오늘의 판 만들기 + 사이트 올리기
-        if: env.TASK == 'publish'
+        if: env.PUBLISH == 'yes'
         run: |
           flags=""
           [ -z "$ANTHROPIC_API_KEY" ] && flags="$flags --no-ai" && echo "AI 키가 없어 원제목으로 발행"

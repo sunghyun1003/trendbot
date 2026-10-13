@@ -1,4 +1,4 @@
-"""집 PC의 SQLite 저장소. 제목·링크·수치만 저장합니다 (본문·닉네임 없음)."""
+"""SQLite 저장소 (GitHub 서버, data 브랜치에 보관). 제목·링크·수치만 저장합니다 (본문·닉네임 없음)."""
 
 from __future__ import annotations
 

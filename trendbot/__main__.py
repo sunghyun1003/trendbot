@@ -1,17 +1,16 @@
 """명령어 모음. GitHub 서버(.github/workflows/run.yml)가 자동으로 실행합니다. 사용자가 직접 칠 일은 없습니다.
 
-  snapshot      게시판·검색·영상 신호를 한 번 수집 (하루 5회 예약 실행)
+  snapshot      게시판·검색·영상·SNS 신호를 한 번 수집 (2시간마다 예약 실행)
   daily         오늘의 판을 만들고 사이트를 생성·배포 (매일 아침 예약 실행)
   probe         처음 설치 때 1회: 사이트별 접속·차단·선택자 점검, 화면 샘플 저장
-  naver-login   네이버 로그인 창 열기 (직접 로그인)
   build-site    저장된 판으로 사이트만 다시 생성
   deploy        public/ 폴더를 Cloudflare Pages에 올리기
   sample        견본 데이터로 사이트 미리보기 생성
   pull-feedback 팀원 피드백(유지/제외/놓친 것) 가져오기 (daily에서 자동 실행)
   doctor        설치·키·접속 상태를 한 번에 점검
   report        수집 품질 리포트 (사이트별 성공률, 원문·사진·댓글)
-  inbox         집 PC 도우미가 보낸 디젤매니아 결과 받기
-  cloud-setup   처음 설정: Cloudflare 사이트·저장소·로그인 잠금 자동 생성
+  cloud-setup   처음 설정: Cloudflare 사이트·저장소·로그인 잠금·정시 실행기 자동 생성
+  published-today 오늘 판이 이미 있는지 (예비 발행 중복 방지)
 """
 
 from __future__ import annotations
@@ -36,21 +35,14 @@ def _load_env() -> None:
                 os.environ.setdefault(k.strip(), v.strip())
 
 
-def cmd_snapshot(cfg: dict, include_naver: bool) -> int:
+def cmd_snapshot(cfg: dict) -> int:
     db = storage.connect()
     failures = 0
     for src in cfg["sources"]:
         if not src.get("enabled", True):
             continue
-        kind = src.get("kind", "html_list")
-        if kind == "naver_cafe" and not include_naver:
-            continue
         try:
-            if kind == "naver_cafe":
-                from trendbot.collectors import naver_cafe
-                posts = naver_cafe.collect(src)
-            else:
-                posts = html_list.collect(src)
+            posts = html_list.collect(src)
             if not posts:
                 raise ValueError("목록을 하나도 읽지 못함 (화면 구조가 바뀌었을 수 있음)")
             storage.save_posts(db, posts)
@@ -134,20 +126,18 @@ def main(argv: list[str] | None = None) -> int:
     _load_env()
     ap = argparse.ArgumentParser(prog="trendbot", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    s = sub.add_parser("snapshot")
-    s.add_argument("--naver", action="store_true", help="네이버 카페도 수집 (하루 1~2회만)")
+    sub.add_parser("snapshot")
     d = sub.add_parser("daily")
     d.add_argument("--no-ai", action="store_true")
     d.add_argument("--no-deploy", action="store_true")
     sub.add_parser("probe")
-    sub.add_parser("naver-login")
     sub.add_parser("build-site")
     sub.add_parser("deploy")
     sub.add_parser("sample")
     sub.add_parser("pull-feedback")
     sub.add_parser("report")
-    sub.add_parser("inbox")
     sub.add_parser("cloud-setup")
+    sub.add_parser("published-today")
     dr = sub.add_parser("doctor")
     dr.add_argument("--quick", action="store_true", help="사이트 접속 점검 생략")
     args = ap.parse_args(argv)
@@ -159,23 +149,22 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.cmd == "snapshot":
-        return cmd_snapshot(cfg, args.naver)
+        return cmd_snapshot(cfg)
     if args.cmd == "daily":
         cmd_daily(cfg, use_ai=not args.no_ai, deploy=not args.no_deploy)
     elif args.cmd == "probe":
         from tools.probe import run
         run(cfg)
-    elif args.cmd == "naver-login":
-        from trendbot.collectors.naver_cafe import open_login_window
-        open_login_window()
     elif args.cmd == "build-site":
         cmd_build_site(cfg)
+    elif args.cmd == "published-today":  # 오늘 판이 이미 있으면 0 (예비 발행이 중복되지 않게)
+        from datetime import date
+        done = any(e["date"] == date.today().isoformat() for e in storage.load_editions(storage.connect()))
+        print("오늘 이미 발행됨 → 건너뜀" if done else "오늘 아직 발행 안 함 → 발행")
+        return 0 if done else 1
     elif args.cmd == "cloud-setup":
         from trendbot.cloud_setup import main as setup_main
         return setup_main()
-    elif args.cmd == "inbox":
-        from trendbot import inbox
-        print(inbox.pull(storage.connect()))
     elif args.cmd == "report":
         from trendbot.report import run as report_run
         print(report_run(cfg))

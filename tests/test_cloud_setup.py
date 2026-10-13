@@ -19,10 +19,9 @@ def test_setup_creates_everything_and_is_rerunnable(env, monkeypatch):
     assert lines[0] == "사이트 주소: https://trendbot.pages.dev"
     assert [n["title"] for n in fake.namespaces] == ["dsbg-store"]
     assert [i["type"] for i in fake.idps] == ["onetimepin"]
-    main, agent = fake.apps
+    (main,) = fake.apps  # 잠금 예외 앱은 더 이상 만들지 않음
     assert main["self_hosted_domains"] == ["trendbot.pages.dev", "*.trendbot.pages.dev"]
     assert main["policies"][0]["include"] == [{"email": {"email": "me@team.com"}}, {"email": {"email": "you@team.com"}}]
-    assert agent["domain"] == "trendbot.pages.dev/api/agent" and agent["policies"][0]["decision"] == "bypass"
     conf = fake.projects["trendbot"]["patches"][-1]["deployment_configs"]["production"]
     assert conf["kv_namespaces"]["FEEDBACK"]["namespace_id"] == "ns1"
     assert conf["env_vars"]["ACCESS_AUD"]["value"] == "aud1"
@@ -30,7 +29,7 @@ def test_setup_creates_everything_and_is_rerunnable(env, monkeypatch):
 
     monkeypatch.setenv("ALLOWED_EMAILS", "me@team.com")  # 다시 눌러도 중복 생성 없이 갱신
     cloud_setup.run(cf)
-    assert len(fake.namespaces) == 1 and len(fake.apps) == 2 and len(fake.idps) == 1
+    assert len(fake.namespaces) == 1 and len(fake.apps) == 1 and len(fake.idps) == 1
     assert fake.apps[0]["policies"][0]["include"] == [{"email": {"email": "me@team.com"}}]
 
 
@@ -48,9 +47,8 @@ def test_custom_domain_is_locked_too(env, monkeypatch):
     monkeypatch.setenv("SITE_DOMAIN", "https://DSBG.example.com/")
     fake = FakeCF()
     lines = cloud_setup.run(client(fake, monkeypatch))
-    main, agent = fake.apps
+    (main,) = fake.apps
     assert "dsbg.example.com" in main["self_hosted_domains"]           # 새 주소도 팀원만
-    assert "dsbg.example.com/api/agent" in agent["self_hosted_domains"]
     assert fake.projects["trendbot"]["domains"] == [{"name": "dsbg.example.com", "status": "pending"}]
     assert any("내 도메인: https://dsbg.example.com" in l for l in lines)
     cloud_setup.run(client(fake, monkeypatch))                          # 다시 눌러도 중복 추가 없음
@@ -64,3 +62,27 @@ def test_bad_domain_rejected(env, monkeypatch):
     monkeypatch.setenv("SITE_DOMAIN", "not a domain")
     with pytest.raises(cloud_setup.SetupError, match="SITE_DOMAIN"):
         cloud_setup.run(client(FakeCF(), monkeypatch))
+
+
+def test_old_helper_bypass_app_is_removed(env, monkeypatch):
+    fake = FakeCF()
+    fake.apps.append({"id": "old1", "name": "ㄷㅅㅂㄱ 집 PC 도우미 창구", "domain": "trendbot.pages.dev/api/agent"})
+    cloud_setup.run(client(fake, monkeypatch))
+    assert [a["name"] for a in fake.apps] == ["ㄷㅅㅂㄱ"]
+
+
+def test_scheduler_worker_installed(env, monkeypatch):
+    fake = FakeCF()
+    lines = cloud_setup.run(client(fake, monkeypatch))
+    w = fake.workers["dsbg-scheduler"]
+    assert [c["cron"] for c in w["schedules"]] == ["30 21 * * *", "7 */2 * * *"]
+    assert b"github_pat_x" in w["upload"] and b"export default" in w["upload"]
+    assert any(l.startswith("정시 실행기: 매일 06:30") for l in lines)
+
+
+def test_scheduler_permission_missing_is_explained_not_fatal(env, monkeypatch):
+    fake = FakeCF()
+    fake.worker_denied = True
+    lines = cloud_setup.run(client(fake, monkeypatch))
+    assert any("Workers Scripts: Edit" in l for l in lines)
+    assert fake.apps  # 나머지 설정은 그대로 진행

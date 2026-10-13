@@ -1,6 +1,5 @@
 // /api/* 공통 관문: Cloudflare Access 로그인 확인.
 // 사이트 전체가 Access(팀원 이메일 로그인) 뒤에 있고, 여기서 한 번 더 서명을 검증해 이메일을 꺼냅니다.
-// 예외: /api/agent 는 집 PC 도우미용이라 Access를 건너뛰고(처음 설정이 '통과' 규칙을 만듦) 기기 토큰으로 확인합니다.
 
 const b64 = (s) => atob(s.replace(/-/g, "+").replace(/_/g, "/"));
 
@@ -27,7 +26,6 @@ export async function verifiedEmail(request, env) {
 
 export async function onRequest(context) {
   const { request, env, next, data } = context;
-  if (new URL(request.url).pathname.startsWith("/api/agent")) return next();
   data.email = await verifiedEmail(request, env);
   if (!data.email) return new Response("unauthorized", { status: 401 });
   return next();

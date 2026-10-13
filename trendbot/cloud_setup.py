@@ -2,7 +2,8 @@
 
 이미 있으면 건너뛰거나 최신 값으로 맞추므로, 몇 번을 다시 눌러도 안전합니다.
 1. Pages 프로젝트(사이트)            4. 팀원 로그인 잠금(Access) + 이메일 인증번호 로그인
-2. KV 저장소(피드백·집 PC 도우미)    5. 집 PC 도우미 창구(/api/agent)만 잠금 예외 (기기 토큰으로 따로 확인)
+2. KV 저장소(팀원 피드백)            5. (내 도메인이 있으면) 도메인 연결
+3-1. 정시 실행기(Cloudflare Worker): 06:30 발행·2시간마다 수집을 정확한 시각에 시작
 3. 사이트 설정값(로그인 검증값, 대시보드용 GitHub 토큰)
 
 필요한 GitHub 비밀값: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, ALLOWED_EMAILS, (DASHBOARD_TOKEN, SITE_DOMAIN)
@@ -11,13 +12,20 @@ SITE_DOMAIN(내 도메인)을 넣으면 사이트에 그 주소를 붙이고, �
 
 from __future__ import annotations
 
+import json
 import os
 import re
 
 from trendbot.cloudflare import PROJECT, Client, CloudflareError
+from trendbot.config import ROOT
 
 APP_NAME = "ㄷㅅㅂㄱ"
-AGENT_APP_NAME = "ㄷㅅㅂㄱ 집 PC 도우미 창구"
+OLD_AGENT_APP_NAME = "ㄷㅅㅂㄱ 집 PC 도우미 창구"  # 예전 버전이 만든 잠금 예외. 있으면 지움
+
+
+SCHEDULER = "dsbg-scheduler"
+PUBLISH_CRON = "30 21 * * *"      # 06:30 한국 시각 (UTC 기준으로 적음)
+COLLECT_CRON = "7 */2 * * *"      # 2시간마다 (매시 7분)
 
 
 class SetupError(Exception):
@@ -92,14 +100,35 @@ def ensure_access(cf: Client, host: str, allowed: list[str], domain: str | None 
         "policies": [{"name": "팀원", "decision": "allow", "precedence": 1,
                       "include": [{"email": {"email": e}} for e in allowed]}],
     })
-    _upsert_app(cf, apps, {
-        "name": AGENT_APP_NAME, "type": "self_hosted", "domain": f"{host}/api/agent",
-        "self_hosted_domains": [f"{host}/api/agent"] + ([f"{domain}/api/agent"] if domain else []),
-        "session_duration": "24h", "app_launcher_visible": False,
-        "policies": [{"name": "기기 토큰으로 확인", "decision": "bypass", "precedence": 1,
-                      "include": [{"everyone": {}}]}],
-    })
+    for a in apps:  # 집 PC 도우미를 없앴으므로 예전 잠금 예외(/api/agent)를 삭제
+        if a.get("name") == OLD_AGENT_APP_NAME:
+            cf.call("DELETE", f"/access/apps/{a['id']}")
     return team, app["aud"]
+
+
+def ensure_scheduler(cf: Client) -> str:
+    """정시 실행기(Worker)를 올리고 시각을 등록. 결과를 한국어 한 줄로 (실패해도 설정 전체는 계속)."""
+    token = os.environ.get("DASHBOARD_TOKEN")
+    if not token:
+        return "정시 실행기: DASHBOARD_TOKEN이 없어 건너뜀 (GitHub 자체 예약으로만 실행, 늦어질 수 있음)"
+    meta = {"main_module": "scheduler.js", "compatibility_date": "2026-01-01", "bindings": [
+        {"type": "secret_text", "name": "GITHUB_TOKEN", "text": token},
+        {"type": "plain_text", "name": "GITHUB_REPO", "text": os.environ.get("GITHUB_REPOSITORY", "")},
+        {"type": "plain_text", "name": "GITHUB_BRANCH", "text": os.environ.get("GITHUB_REF_NAME", "main")},
+        {"type": "plain_text", "name": "PUBLISH_CRON", "text": PUBLISH_CRON},
+    ]}
+    code = (ROOT / "worker" / "scheduler.js").read_bytes()
+    try:
+        cf.call("PUT", f"/workers/scripts/{SCHEDULER}", files={
+            "metadata": (None, json.dumps(meta), "application/json"),
+            "scheduler.js": ("scheduler.js", code, "application/javascript+module")})
+        cf.call("PUT", f"/workers/scripts/{SCHEDULER}/schedules", json=[{"cron": PUBLISH_CRON}, {"cron": COLLECT_CRON}])
+    except CloudflareError as e:
+        if " 403 " in str(e) or "Authentication" in str(e) or "permission" in str(e).lower():
+            return ("정시 실행기: ✗ Cloudflare 토큰에 'Workers Scripts: Edit' 권한이 없어 설치하지 못함 "
+                    "(keys-guide 3번에서 권한 추가 후 처음 설정 다시)")
+        return f"정시 실행기: ✗ 설치 실패 ({str(e)[:120]})"
+    return "정시 실행기: 매일 06:30 발행, 2시간마다 수집"
 
 
 def configure_project(cf: Client, kv_id: str, team: str, aud: str) -> None:
@@ -135,6 +164,7 @@ def run(cf: Client | None = None) -> list[str]:
             status = ensure_custom_domain(cf, domain)
             done.append(f"내 도메인: https://{domain} ({'연결됨' if status == 'active' else '연결 중, 몇 분~몇 시간 뒤 열림'})")
         configure_project(cf, kv_id, team, aud)
+        done.append(ensure_scheduler(cf))
         done.append("사이트 설정값 연결" + ("" if os.environ.get("DASHBOARD_TOKEN") else
                                       " (DASHBOARD_TOKEN이 없어 대시보드 버튼은 꺼진 상태)"))
     except CloudflareError as e:

@@ -3,7 +3,6 @@
 키: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN (GitHub 비밀값).
 KV 저장소 한 곳(이름 KV_TITLE)에 접두어로 나눠 담습니다.
 - fb:     팀원 피드백 (사이트 버튼 → 저장, 발행 때 가져가고 지움)
-- agent:  집 PC 도우미 (기기 토큰, 상태, 보낸 수집 결과)
 """
 
 from __future__ import annotations

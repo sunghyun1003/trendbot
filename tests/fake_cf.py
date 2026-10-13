@@ -15,6 +15,8 @@ class FakeCF:
         self.org: dict | None = {"auth_domain": "team.cloudflareaccess.com"}
         self.apps: list[dict] = []
         self.idps: list[dict] = []
+        self.workers: dict[str, dict] = {}
+        self.worker_denied = False
         self.calls: list[tuple[str, str]] = []
 
     def ok(self, result, info=None):
@@ -25,7 +27,7 @@ class FakeCF:
         self.calls.append((req.method, path))
         try:
             body = json.loads(req.content) if req.content else None
-        except ValueError:
+        except (ValueError, UnicodeDecodeError):
             body = None
         if path == "/storage/kv/namespaces":
             if req.method == "POST":
@@ -61,6 +63,15 @@ class FakeCF:
             return httpx.Response(404, json={"success": False, "errors": [{"message": "not found"}]})
         if path == "/access/organizations":
             return self.ok(self.org) if self.org else httpx.Response(404, json={"success": False, "errors": [{"message": "no org"}]})
+        if m := re.fullmatch(r"/workers/scripts/([\w-]+)(/schedules)?", path):
+            if self.worker_denied:
+                return httpx.Response(403, json={"success": False, "errors": [{"message": "Authentication error"}]})
+            w = self.workers.setdefault(m.group(1), {})
+            if m.group(2):
+                w["schedules"] = body
+            else:
+                w["upload"] = req.content
+            return self.ok({"id": m.group(1)})
         if path == "/access/identity_providers":
             if req.method == "POST":
                 self.idps.append(body)
@@ -73,6 +84,9 @@ class FakeCF:
             return self.ok(self.apps)
         if m := re.fullmatch(r"/access/apps/(\w+)", path):
             app = next(a for a in self.apps if a["id"] == m.group(1))
+            if req.method == "DELETE":
+                self.apps.remove(app)
+                return self.ok({"id": app["id"]})
             app.update(body)
             return self.ok(app)
         return httpx.Response(500, json={"success": False, "errors": [{"message": f"fake: {req.method} {path}"}]})

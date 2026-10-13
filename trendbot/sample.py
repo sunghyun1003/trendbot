@@ -42,8 +42,8 @@ def sample_editions() -> list[dict]:
         _card(3, "B", ["NEW", "급부상"], "[견본] 가을 한정 러닝화 컬러, 발매 하루 만에 리셀가 2배",
               "남성 20~30대 취미·30~50대 커뮤니티 + 구글 트렌드 2만+ (견본)", "패션/뷰티", ["제품/딜"],
               "남 20~50대 중심 (확산 기반 추정)", "활용 기회",
-              [{"name": "디젤매니아", "at": "07:50"}, {"name": "뽐뿌 HOT", "at": "10:05"}],
-              [_post("dieselmania", "디젤매니아", "[견본] 오늘 발매한 러닝화 실착 후기", 23000, 180, 410),
+              [{"name": "루리웹 베스트", "at": "07:50"}, {"name": "뽐뿌 HOT", "at": "10:05"}],
+              [_post("ruliweb", "루리웹 베스트", "[견본] 오늘 발매한 러닝화 실착 후기", 23000, 180, 410),
                _post("ppomppu_hot", "뽐뿌 HOT", "[견본] 러닝화 리셀가 미쳤네요", 31000, 45, 260)],
               54, ["P2", "P3"], 2),
         _card(4, "M", ["NEW", "단일채널 폭발"], "[견본] 신인 밴드 라이브 클립, 하루 만에 조회 140만",
@@ -75,7 +75,6 @@ def sample_editions() -> list[dict]:
     cards[0]["posts"][1]["original"] = {"status": "ok", "body": "[견본] 세 군데 다 품절. 재입고 알림 신청했습니다.", "images": [], "comments": []}
 
     champs = [
-        {"source_id": "dieselmania", "name": "디젤매니아", "post": cards[2]["posts"][0], "in_card": 3, "strength": "강함"},
         {"source_id": "ppomppu_hot", "name": "뽐뿌 HOT", "post": cards[2]["posts"][1], "in_card": 3, "strength": "강함"},
         {"source_id": "ppomppu_deal", "name": "뽐뿌 핫딜", "post": _post("ppomppu_deal", "뽐뿌 핫딜", "[견본] 무선 이어폰 역대가 특가", 41000, 88, 650), "strength": "평소 수준"},
         {"source_id": "dcbest", "name": "디시 실시간 베스트", "post": cards[0]["posts"][1], "in_card": 1, "strength": "역대급"},

@@ -107,34 +107,6 @@ sources:
       comment: "tr.comment_element.best"
       comment_text: "span.text"
       comment_likes: "button.btn_like span.num"
-  - id: dieselmania
-    name: 디젤매니아
-    pod: P2
-    champion: true
-    enabled: true
-    verified: false
-    kind: naver_cafe        # 집 PC의 로그인된 브라우저로 읽음 (자동 로그인 없음)
-    cafe_url: https://cafe.naver.com/dieselmania
-    url: https://cafe.naver.com/dieselmania
-  - id: powderroom
-    name: 파우더룸
-    pod: P5                 # 뷰티 카페, 여 20~30대
-    champion: true
-    enabled: false          # 네이버 카페 robots.txt 확인 결과에 따라 사용자 결정 후 켬
-    verified: false
-    kind: naver_cafe
-    cafe_url: https://cafe.naver.com/cosmania
-    url: https://cafe.naver.com/cosmania
-  - id: sasa
-    name: 스사사
-    pod: P6                 # 여행 카페(스마트컨슈머 사랑방), 여 30~40대
-    champion: true
-    enabled: false          # 네이버 카페 robots.txt 확인 결과에 따라 사용자 결정 후 켬
-    verified: false
-    kind: naver_cafe
-    cafe_url: https://cafe.naver.com/hotellife
-    url: https://cafe.naver.com/hotellife
-
   - id: ppomppu_hot
     name: 뽐뿌 HOT
     pod: P3

@@ -24,11 +24,11 @@ test("관문: 토큰 없음·다른 키·만료·다른 앱은 401", async () =>
   assert.equal((await gate("/api/admin", "garbage.token.x")).status, 401);
 });
 
-test("관문: 정상 토큰이면 통과하고 이메일을 넘김, /api/agent 는 Access 없이 통과", async () => {
+test("관문: 정상 토큰이면 통과하고 이메일을 넘김, 예외 경로 없음", async () => {
   const ok = await gate("/api/admin", await jwt({ aud: ["aud1"], exp: soon(), email: "me@team.com" }, privateKey));
   assert.equal(ok.status, 200);
   assert.equal(ok.email, "me@team.com");
-  assert.equal((await gate("/api/agent?get=cmd", null)).status, 200);
+  assert.equal((await gate("/api/agent?get=cmd", null)).status, 401);  // 예전 도우미 창구도 로그인 필요
 });
 
 test("피드백: fb: 접두어로 저장, 잘못된 동작은 400", async () => {

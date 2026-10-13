@@ -97,12 +97,9 @@ def check_tools() -> list[Check]:
             exe = os.environ.get("TRENDBOT_CHROMIUM")
             b = pw.chromium.launch(executable_path=exe) if exe else pw.chromium.launch()
             b.close()
-        out.append(Check("브라우저(Playwright)", True, "캡처·네이버 카페용"))
+        out.append(Check("브라우저(Playwright)", True, "본문 캡처용"))
     except Exception as e:
         out.append(Check("브라우저(Playwright)", False, e.__class__.__name__, "python -m playwright install chromium"))
-    profile = DATA_DIR / "browser-profile"
-    out.append(Check("네이버 로그인 프로필", profile.exists() or None,
-                     "있음" if profile.exists() else "아직 없음", "python -m trendbot naver-login 으로 직접 로그인"))
     return out
 
 
@@ -110,7 +107,7 @@ def check_sources(cfg: dict) -> list[Check]:
     from trendbot.collectors import html_list
     out = []
     for src in cfg["sources"]:
-        if not src.get("enabled", True) or src.get("kind") == "naver_cafe":
+        if not src.get("enabled", True):
             continue
         try:
             n = len(html_list.collect(src))

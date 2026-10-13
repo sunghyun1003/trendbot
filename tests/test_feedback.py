@@ -17,10 +17,10 @@ def test_pull_saves_then_clears_kv(tmp_path, monkeypatch):
         {"at": "2026-10-13T00:00:01Z", "date": "2026-10-13", "card": "c1", "action": "keep", "user": "a@x"}).encode()
     fake.kv["fb:2026-10-13T00:00:02Z-b"] = json.dumps(
         {"at": "2026-10-13T00:00:02Z", "date": "2026-10-13", "card": "c2", "action": "drop", "reason": "이미 앎", "user": "a@x"}).encode()
-    fake.kv["agent:status"] = b"{}"  # 다른 접두어는 건드리지 않음
+    fake.kv["other:key"] = b"{}"  # 다른 접두어는 건드리지 않음
     db = storage.connect(tmp_path / "f.db")
     assert feedback.pull(db, cf) == "피드백 2건 새로 저장"
-    assert list(fake.kv) == ["agent:status"]
+    assert list(fake.kv) == ["other:key"]
     assert feedback.pull(db, cf) == "피드백 0건 새로 저장"
     s = feedback.summary(db, days=100000)
     assert s["votes"] == 2 and s["keep_rate"] == 0.5 and s["already_known_rate"] == 0.5

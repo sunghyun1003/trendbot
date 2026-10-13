@@ -49,30 +49,15 @@ def _age_label(c: Candidate, cfg: dict) -> str:
 
 
 def attach_originals(posts: list[dict], cfg: dict) -> None:
-    """발행될 글에 원문(본문·이미지·베스트 댓글)을 붙임. 네이버 카페는 로그인된 브라우저로."""
+    """발행될 글에 원문(본문·이미지·베스트 댓글)을 붙임."""
     srcs = sources_by_id(cfg)
-    cafe = [p for p in posts if srcs.get(p["source_id"], {}).get("kind") == "naver_cafe" and "original" not in p]
     for p in posts:
-        if "original" in p or p in cafe:
-            continue
-        p["original"] = fetch_original(p["url"], srcs.get(p["source_id"]))
-    if cafe:
-        from trendbot import inbox
-        from trendbot.collectors.naver_cafe import PROFILE_DIR
-        got = inbox.lookup([p["url"] for p in cafe])  # 집 PC 도우미가 미리 보낸 원문
-        rest = [p["url"] for p in cafe if p["url"] not in got]
-        if rest and PROFILE_DIR.exists():  # 로그인된 브라우저가 있는 PC에서 직접 실행할 때
-            try:
-                from trendbot.collectors.naver_cafe import fetch_originals
-                got.update(fetch_originals(rest))
-            except Exception as e:
-                got.update({u: {"status": "error", "body": "", "images": [], "comments": [], "note": str(e)[:80]} for u in rest})
-        for p in cafe:
-            p["original"] = got.get(p["url"], {"status": "error", "body": "", "images": [], "comments": []})
+        if "original" not in p:
+            p["original"] = fetch_original(p["url"], srcs.get(p["source_id"]))
 
 
 def attach_media(posts: list[dict], cfg: dict, day: str, capture: bool = True, max_images: int = 8) -> None:
-    """원문 이미지를 내려받아 저장하고, 필요하면 본문을 캡처함 (집 PC). 실패해도 발행은 계속."""
+    """원문 이미지를 내려받아 저장하고, 필요하면 본문을 캡처함. 실패해도 발행은 계속."""
     from trendbot.collectors import media
 
     srcs = sources_by_id(cfg)
@@ -81,21 +66,13 @@ def attach_media(posts: list[dict], cfg: dict, day: str, capture: bool = True, m
         if not o or o.get("status") != "ok":
             continue
         src = srcs.get(p["source_id"], {})
-        if o.get("saved"):  # 집 PC 도우미가 이미 저장해 보낸 사진: 오늘 폴더로 옮겨 씀
-            o["saved"] = media.adopt(o["saved"], day)
-            continue
         try:
             o["saved"] = media.download_images(o.get("images", [])[:max_images], p["url"], day)
         except Exception:
             o["saved"] = []
         if capture and not o.get("capture") and media.needs_capture(o, o["saved"], src):
             try:
-                profile = None
-                if src.get("kind") == "naver_cafe":
-                    from trendbot.collectors.naver_cafe import PROFILE_DIR as profile
-                    if not profile.exists():
-                        continue
-                o["capture"] = media.capture_body(p["url"], (src.get("detail") or {}).get("body"), day, profile)
+                o["capture"] = media.capture_body(p["url"], (src.get("detail") or {}).get("body"), day)
             except Exception as e:
                 o["capture_error"] = e.__class__.__name__
 

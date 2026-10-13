@@ -2,8 +2,6 @@
 // GitHub 토큰(DASHBOARD_TOKEN)으로: 지금 수집/발행 실행, 사이트 켜기·끄기(sources.yaml 수정), 키 상태 확인.
 // 이 값들은 '처음 설정'이 Pages 환경변수로 넣어 줍니다: GITHUB_TOKEN, GITHUB_REPO, GITHUB_BRANCH.
 
-import { sha256 } from "./agent.js";
-
 export const KEYS = [
   { name: "ANTHROPIC_API_KEY", label: "AI 편집 (Anthropic)", required: true },
   { name: "CLOUDFLARE_ACCOUNT_ID", label: "Cloudflare 계정 ID", required: true },
@@ -80,18 +78,9 @@ async function readSources(env) {
   return { text: b64decode(f.content), sha: f.sha };
 }
 
-export function installer(site, token) {
-  const ps = `$ErrorActionPreference='Stop'; $h=@{'X-Agent-Token'='${token}'}; $p=Join-Path $env:TEMP 'dsbg-install.ps1'; ` +
-    `Invoke-WebRequest -UseBasicParsing -Headers $h -Uri '${site}/api/agent?get=install' -OutFile $p; ` +
-    `& $p -Token '${token}' -Site '${site}'`;
-  return ["@echo off", "chcp 65001 >nul", "echo ㄷㅅㅂㄱ 집 PC 도우미를 설치합니다. 창을 닫지 말고 기다려 주세요...",
-          `powershell -NoProfile -ExecutionPolicy Bypass -Command "${ps}"`, "pause", ""].join("\r\n");
-}
-
 export async function onRequestGet({ env }) {
-  const out = { keys: [], runs: [], sources: [], agent: null, repo: env.GITHUB_REPO || "", branch: env.GITHUB_BRANCH || "",
+  const out = { keys: [], runs: [], sources: [], repo: env.GITHUB_REPO || "", branch: env.GITHUB_BRANCH || "",
                 ready: Boolean(env.GITHUB_TOKEN && env.GITHUB_REPO) };
-  out.agent = JSON.parse((await env.FEEDBACK.get("agent:status")) || "null");
   if (!out.ready) return Response.json(out);
   const [secrets, runs, src, wl] = await Promise.allSettled([
     gh(env, "GET", "/actions/secrets?per_page=100"),
@@ -114,17 +103,6 @@ export async function onRequestPost({ request, env, data }) {
   let body;
   try { body = await request.json(); } catch { return new Response("bad json", { status: 400 }); }
   try {
-    if (body.action === "helper") {  // 집 PC 도우미 설치 파일 (기기 토큰 포함)
-      const token = [...crypto.getRandomValues(new Uint8Array(24))].map((b) => b.toString(16).padStart(2, "0")).join("");
-      await env.FEEDBACK.put(`agent:device:${await sha256(token)}`, JSON.stringify({ by: data.email, at: new Date().toISOString() }));
-      return new Response(installer(new URL(request.url).origin, token), {
-        headers: { "content-type": "application/octet-stream", "content-disposition": 'attachment; filename="dsbg-setup.cmd"' },
-      });
-    }
-    if (body.action === "naver_now") {
-      await env.FEEDBACK.put("agent:cmd", "collect", { expirationTtl: 60 * 60 * 24 });
-      return Response.json({ ok: true, message: "집 PC가 30분 안에 디젤매니아를 수집합니다" });
-    }
     if (!env.GITHUB_TOKEN) return Response.json({ ok: false, message: "DASHBOARD_TOKEN 키를 넣고 '처음 설정'을 다시 실행해 주세요" }, { status: 400 });
     if (body.action === "run") {
       const task = body.task === "publish" ? "publish" : "collect";

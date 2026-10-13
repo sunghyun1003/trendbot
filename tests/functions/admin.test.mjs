@@ -1,6 +1,5 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import * as agent from "../../site_functions/api/agent.js";
 import * as admin from "../../site_functions/api/admin.js";
 import { kv } from "./helpers.mjs";
 
@@ -53,16 +52,14 @@ function ghFake(env) {
 const env = () => ({ FEEDBACK: kv(), GITHUB_TOKEN: "ghp", GITHUB_REPO: "me/trendbot", GITHUB_BRANCH: "main" });
 const post = (body) => new Request("https://dsbg.pages.dev/api/admin", { method: "POST", body: JSON.stringify(body) });
 
-test("관리: 상태 조회 (키 ✓/✗, 실행 기록, 사이트 목록, 집 PC 상태)", async () => {
+test("관리: 상태 조회 (키 ✓/✗, 실행 기록, 사이트 목록)", async () => {
   const e = env();
   ghFake(e);
-  await e.FEEDBACK.put("agent:status", JSON.stringify({ naver: "login", at: "t" }));
   const r = await (await admin.onRequestGet({ env: e })).json();
   assert.equal(r.keys.find((k) => k.name === "ANTHROPIC_API_KEY").ok, true);
   assert.equal(r.keys.find((k) => k.name === "CLOUDFLARE_API_TOKEN").ok, false);
   assert.equal(r.runs[0].conclusion, "success");
   assert.equal(r.sources.length, 3);
-  assert.equal(r.agent.naver, "login");
 });
 
 test("관리: 지금 발행·켜기끄기는 GitHub API로", async () => {
@@ -76,33 +73,6 @@ test("관리: 지금 발행·켜기끄기는 GitHub API로", async () => {
   assert.equal((await admin.onRequestPost({ request: post({ action: "toggle", id: "clien", enabled: true }), env: e, data })).status, 200);
   assert.equal(admin.parseSources(g.file()).find((x) => x.id === "clien").enabled, true);
   assert.match(g.calls.find((c) => c[0] === "PUT")[2].message, /clien 켜기 \(me@team.com\)/);
-});
-
-test("도우미: 설치 파일 받기 → 그 토큰으로만 도우미 창구 사용", async () => {
-  const e = env();
-  e.ASSETS = { fetch: async (u) => new Response(`asset:${new URL(u).pathname}`) };
-  const r = await admin.onRequestPost({ request: post({ action: "helper" }), env: e, data: { email: "me@team.com" } });
-  const cmd = await r.text();
-  assert.match(r.headers.get("content-disposition"), /dsbg-setup\.cmd/);
-  assert.match(cmd, /\r\n/);
-  const token = cmd.match(/X-Agent-Token'='([0-9a-f]{48})'/)[1];
-  assert.ok(cmd.includes("https://dsbg.pages.dev/api/agent?get=install"));
-  assert.ok(![...e.FEEDBACK.m.keys()].some((k) => k.includes(token)));  // 토큰 원문은 저장하지 않음
-
-  const req = (q, opt = {}, t = token) => new Request(`https://dsbg.pages.dev/api/agent?${q}`, { ...opt, headers: { "X-Agent-Token": t } });
-  assert.equal((await agent.onRequestGet({ request: req("get=code", {}, "x".repeat(48)), env: e })).status, 401);
-  assert.equal(await (await agent.onRequestGet({ request: req("get=code"), env: e })).text(), "asset:/helper/helper.zip");
-
-  await admin.onRequestPost({ request: post({ action: "naver_now" }), env: e, data: { email: "me@team.com" } });
-  assert.deepEqual(await (await agent.onRequestGet({ request: req("get=cmd"), env: e })).json(), { cmd: "collect" });
-  assert.deepEqual(await (await agent.onRequestGet({ request: req("get=cmd"), env: e })).json(), { cmd: null });
-
-  assert.equal((await agent.onRequestPost({ request: req("put=status", { method: "POST", body: JSON.stringify({ naver: "ok", version: "1" }) }), env: e })).status, 200);
-  assert.equal(JSON.parse(e.FEEDBACK.m.get("agent:status")).naver, "ok");
-  assert.equal((await agent.onRequestPost({ request: req("put=batch", { method: "POST", body: "{\"ok\":true}" }), env: e })).status, 200);
-  assert.ok([...e.FEEDBACK.m.keys()].some((k) => k.startsWith("agent:batch:")));
-  assert.equal((await agent.onRequestPost({ request: req("put=media&name=2026-10-12/abc.webp", { method: "POST", body: new Uint8Array([1, 2]) }), env: e })).status, 200);
-  assert.equal((await agent.onRequestPost({ request: req("put=media&name=../x.webp", { method: "POST", body: "x" }), env: e })).status, 400);
 });
 
 test("인스타 감시 계정: 주석 유지, 이상한 값·중복 제거", () => {
