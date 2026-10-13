@@ -26,6 +26,10 @@ def helper(tmp_path, monkeypatch):
     monkeypatch.setattr(h, "STATE", tmp_path / "state.json")
     monkeypatch.setattr(h, "LOG", tmp_path / "helper.log")
     monkeypatch.setattr(h, "ACTIVE_HOURS", range(0, 24))
+    from trendbot import config
+    cafes = [{"id": i, "name": n, "kind": "naver_cafe", "enabled": True}
+             for i, n in (("dieselmania", "디젤매니아"), ("powderroom", "파우더룸"), ("sasa", "스사사"))]
+    monkeypatch.setattr(config, "load_config", lambda: {"sources": cafes + [{"id": "off", "name": "꺼짐", "kind": "naver_cafe", "enabled": False}]})
     monkeypatch.setattr(media, "DATA_DIR", tmp_path)
     monkeypatch.setattr(media, "MEDIA_DIR", tmp_path / "media")
     (tmp_path / "config.json").write_text(json.dumps({"token": "t" * 48, "site": "https://x.pages.dev"}))
@@ -56,12 +60,14 @@ def fake_naver(monkeypatch, login=False):
     url = "https://cafe.naver.com/dieselmania/1"
 
     def collect(src):
-        if login:
+        if login is True or login == src["id"]:
             raise naver_cafe.LoginRequired("네이버 로그인이 풀렸습니다")
+        if src["id"] != "dieselmania":
+            return [Post(src["id"], f"{src['id']} 인기글", f"https://cafe.naver.com/{src['id']}/1", 1)]
         return [Post("dieselmania", "자켓 추천", url, 1, views=900), Post("dieselmania", "신발", url + "2", 2)]
 
     monkeypatch.setattr(naver_cafe, "collect", collect)
-    monkeypatch.setattr(naver_cafe, "fetch_originals", lambda urls: {url: {"status": "ok", "body": "본문", "images": ["https://img/1.jpg"], "comments": []}})
+    monkeypatch.setattr(naver_cafe, "fetch_originals", lambda urls: {url: {"status": "ok", "body": "본문", "images": ["https://img/1.jpg"], "comments": []}} if url in urls else {})
 
     def download(srcs, page_url, day, client=None):
         f = media.MEDIA_DIR / day / "abcdef0123456789.webp"
@@ -78,11 +84,12 @@ def test_collects_uploads_and_inbox_accepts(helper, monkeypatch, tmp_path):
     fake_naver(monkeypatch)
     assert helper.run() == 0
     kinds = [w for w, _ in site.sent]
-    assert kinds == ["media", "batch", "status"]
+    assert kinds == ["media", "batch", "batch", "batch", "status"]  # 디젤매니아·파우더룸·스사사
     assert (helper.APP / "marker.txt").read_text() == "v1"  # 새 코드 풀어 둠
     status = site.sent[-1][1]["json"]
     assert status["naver"] == "ok" and status["last_collect"]
 
+    assert [kw["json"]["source_id"] for w, kw in site.sent if w == "batch"] == ["dieselmania", "powderroom", "sasa"]
     batch = site.sent[1][1]["json"]
     db = storage.connect(tmp_path / "cloud.db")
     assert inbox.save_batch(db, json.loads(json.dumps(batch))) == 2
@@ -103,3 +110,14 @@ def test_dashboard_button_forces_collect_and_login_is_reported(helper, monkeypat
     batch = next(kw["json"] for w, kw in site.sent if w == "batch")
     assert batch["ok"] is False and "로그인" in batch["message"]
     assert site.sent[-1][1]["json"]["naver"] == "login"
+
+
+def test_one_cafe_failing_does_not_stop_others(helper, monkeypatch):
+    site = FakeSite(cmd="collect")
+    monkeypatch.setattr(helper, "Site", site)
+    fake_naver(monkeypatch, login="powderroom")  # 파우더룸만 권한 없음
+    assert helper.run() == 0
+    batches = {kw["json"]["source_id"]: kw["json"]["ok"] for w, kw in site.sent if w == "batch"}
+    assert batches == {"dieselmania": True, "powderroom": False, "sasa": True}
+    status = site.sent[-1][1]["json"]
+    assert status["naver"] == "ok" and "파우더룸" in status["message"]

@@ -42,3 +42,25 @@ def test_setup_explains_missing_pieces(env, monkeypatch):
     monkeypatch.setenv("ALLOWED_EMAILS", "not-an-email")
     with pytest.raises(cloud_setup.SetupError, match="ALLOWED_EMAILS"):
         cloud_setup.run(client(FakeCF(), monkeypatch))
+
+
+def test_custom_domain_is_locked_too(env, monkeypatch):
+    monkeypatch.setenv("SITE_DOMAIN", "https://DSBG.example.com/")
+    fake = FakeCF()
+    lines = cloud_setup.run(client(fake, monkeypatch))
+    main, agent = fake.apps
+    assert "dsbg.example.com" in main["self_hosted_domains"]           # 새 주소도 팀원만
+    assert "dsbg.example.com/api/agent" in agent["self_hosted_domains"]
+    assert fake.projects["trendbot"]["domains"] == [{"name": "dsbg.example.com", "status": "pending"}]
+    assert any("내 도메인: https://dsbg.example.com" in l for l in lines)
+    cloud_setup.run(client(fake, monkeypatch))                          # 다시 눌러도 중복 추가 없음
+    assert len(fake.projects["trendbot"]["domains"]) == 1
+    # 잠금이 도메인 연결보다 먼저
+    calls = [c for c in fake.calls if c[1] in ("/access/apps", "/pages/projects/trendbot/domains") and c[0] == "POST"]
+    assert calls[0][1] == "/access/apps"
+
+
+def test_bad_domain_rejected(env, monkeypatch):
+    monkeypatch.setenv("SITE_DOMAIN", "not a domain")
+    with pytest.raises(cloud_setup.SetupError, match="SITE_DOMAIN"):
+        cloud_setup.run(client(FakeCF(), monkeypatch))

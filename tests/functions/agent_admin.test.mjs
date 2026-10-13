@@ -104,3 +104,8 @@ test("도우미: 설치 파일 받기 → 그 토큰으로만 도우미 창구 �
   assert.equal((await agent.onRequestPost({ request: req("put=media&name=2026-10-12/abc.webp", { method: "POST", body: new Uint8Array([1, 2]) }), env: e })).status, 200);
   assert.equal((await agent.onRequestPost({ request: req("put=media&name=../x.webp", { method: "POST", body: "x" }), env: e })).status, 400);
 });
+
+test("인스타 감시 계정: 주석 유지, 이상한 값·중복 제거", () => {
+  const out = admin.setWatchlist("# 설명\n# 둘째\nold_one\n", ["@good.acct", "good.acct", "bad acct!", "", "two_2"]);
+  assert.equal(out, "# 설명\n# 둘째\ngood.acct\ntwo_2\n");
+});

@@ -11,6 +11,9 @@ export const KEYS = [
   { name: "ALLOWED_EMAILS", label: "사이트를 볼 팀원 이메일", required: true },
   { name: "DASHBOARD_TOKEN", label: "대시보드 버튼용 GitHub 토큰", required: true },
   { name: "YOUTUBE_API_KEY", label: "유튜브 (선택)", required: false },
+  { name: "SITE_DOMAIN", label: "내 도메인 (선택)", required: false },
+  { name: "META_ACCESS_TOKEN", label: "인스타 토큰 (선택)", required: false },
+  { name: "IG_USER_ID", label: "인스타 계정 번호 (선택)", required: false },
 ];
 
 async function gh(env, method, path, body) {
@@ -58,6 +61,20 @@ export function setEnabled(text, id, enabled) {
 const b64decode = (s) => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\n/g, "")), (c) => c.charCodeAt(0)));
 const b64encode = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 
+const WATCHLIST = "config/watchlists/instagram.txt";
+
+async function readFile(env, path) {
+  const f = await gh(env, "GET", `/contents/${path}?ref=${env.GITHUB_BRANCH}`);
+  return { text: b64decode(f.content), sha: f.sha };
+}
+
+// 인스타 감시 계정: 설명 주석은 그대로 두고 계정 줄만 바꿈
+export function setWatchlist(text, accounts) {
+  const head = text.split("\n").filter((l) => l.startsWith("#"));
+  const clean = [...new Set(accounts.map((a) => a.trim().replace(/^@/, "")).filter((a) => /^[\w.]{1,30}$/.test(a)))];
+  return [...head, ...clean].join("\n") + "\n";
+}
+
 async function readSources(env) {
   const f = await gh(env, "GET", `/contents/config/sources.yaml?ref=${env.GITHUB_BRANCH}`);
   return { text: b64decode(f.content), sha: f.sha };
@@ -76,11 +93,13 @@ export async function onRequestGet({ env }) {
                 ready: Boolean(env.GITHUB_TOKEN && env.GITHUB_REPO) };
   out.agent = JSON.parse((await env.FEEDBACK.get("agent:status")) || "null");
   if (!out.ready) return Response.json(out);
-  const [secrets, runs, src] = await Promise.allSettled([
+  const [secrets, runs, src, wl] = await Promise.allSettled([
     gh(env, "GET", "/actions/secrets?per_page=100"),
     gh(env, "GET", "/actions/workflows/run.yml/runs?per_page=6"),
     readSources(env),
+    readFile(env, WATCHLIST),
   ]);
+  if (wl.status === "fulfilled") out.instagram = wl.value.text.split("\n").filter((l) => l.trim() && !l.startsWith("#"));
   const have = new Set(secrets.status === "fulfilled" ? secrets.value.secrets.map((s) => s.name) : []);
   out.keys = KEYS.map((k) => ({ ...k, ok: secrets.status === "fulfilled" ? have.has(k.name) : null }));
   if (runs.status === "fulfilled") {
@@ -111,6 +130,14 @@ export async function onRequestPost({ request, env, data }) {
       const task = body.task === "publish" ? "publish" : "collect";
       await gh(env, "POST", "/actions/workflows/run.yml/dispatches", { ref: env.GITHUB_BRANCH, inputs: { task } });
       return Response.json({ ok: true, message: task === "publish" ? "발행을 시작했어요 (약 5분)" : "수집을 시작했어요 (약 2분)" });
+    }
+    if (body.action === "watchlist") {
+      const { text, sha } = await readFile(env, WATCHLIST);
+      const next = setWatchlist(text, Array.isArray(body.accounts) ? body.accounts.map(String) : []);
+      await gh(env, "PUT", `/contents/${WATCHLIST}`, {
+        message: `대시보드: 인스타 감시 계정 수정 (${data.email})`, content: b64encode(next), sha, branch: env.GITHUB_BRANCH,
+      });
+      return Response.json({ ok: true, message: "저장했어요. 다음 수집부터 반영" });
     }
     if (body.action === "toggle") {
       const { text, sha } = await readSources(env);

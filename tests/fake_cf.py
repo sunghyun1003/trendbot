@@ -46,6 +46,12 @@ class FakeCF:
         if path == "/pages/projects" and req.method == "POST":
             self.projects[body["name"]] = body
             return self.ok({**body, "subdomain": body["name"] + ".pages.dev"})
+        if m := re.fullmatch(r"/pages/projects/([\w-]+)/domains", path):
+            doms = self.projects[m.group(1)].setdefault("domains", [])
+            if req.method == "POST":
+                doms.append({"name": body["name"], "status": "pending"})
+                return self.ok(doms[-1])
+            return self.ok(doms)
         if m := re.fullmatch(r"/pages/projects/([\w-]+)", path):
             if req.method == "PATCH":
                 self.projects[m.group(1)].setdefault("patches", []).append(body)

@@ -116,6 +116,24 @@ sources:
     kind: naver_cafe        # 집 PC의 로그인된 브라우저로 읽음 (자동 로그인 없음)
     cafe_url: https://cafe.naver.com/dieselmania
     url: https://cafe.naver.com/dieselmania
+  - id: powderroom
+    name: 파우더룸
+    pod: P5                 # 뷰티 카페, 여 20~30대
+    champion: true
+    enabled: false          # 네이버 카페 robots.txt 확인 결과에 따라 사용자 결정 후 켬
+    verified: false
+    kind: naver_cafe
+    cafe_url: https://cafe.naver.com/cosmania
+    url: https://cafe.naver.com/cosmania
+  - id: sasa
+    name: 스사사
+    pod: P6                 # 여행 카페(스마트컨슈머 사랑방), 여 30~40대
+    champion: true
+    enabled: false          # 네이버 카페 robots.txt 확인 결과에 따라 사용자 결정 후 켬
+    verified: false
+    kind: naver_cafe
+    cafe_url: https://cafe.naver.com/hotellife
+    url: https://cafe.naver.com/hotellife
 
   - id: ppomppu_hot
     name: 뽐뿌 HOT
@@ -258,3 +276,14 @@ signals:
     champion: true
     search_pages: 2           # 하루 검색 페이지 수 (1페이지 = 100 유닛)
     shorts_max_seconds: 180
+  youtube_chart:              # 한국 인기 동영상 차트 (연예·문화만, 뉴스·정치 카테고리는 넣지 않음)
+    enabled: true
+    per_category: 20
+    categories: {음악: "10", 엔터테인먼트: "24", 코미디: "23", 영화: "1", 인물·블로그: "22"}
+  x_trends:                   # X(트위터) 실시간 트렌드, 공개 집계 사이트 (trends24는 봇 차단이라 사용 안 함)
+    enabled: true
+    champion: true
+    url: https://getdaytrends.com/korea/
+  ent_news:                   # 연예 뉴스 '많이 본 뉴스' (네이버 엔터는 robots.txt 금지라 다음 사용)
+    enabled: true
+    url: https://entertain.daum.net/ranking/popular

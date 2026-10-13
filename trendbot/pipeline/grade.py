@@ -40,6 +40,8 @@ def _pods_of(story: Story, src_pod: dict[str, str]) -> set[str]:
             pods.add(src_pod[it.source_id])
         elif it.kind == "youtube" and (it.data.get("value") or 0) >= 100_000:
             pods.add("P7")
+        elif it.kind in ("xtrend", "insta"):  # X 실시간 트렌드 키워드, 인스타 감시 계정의 튄 게시물 = SNS 반향
+            pods.add("P8")
     return pods
 
 

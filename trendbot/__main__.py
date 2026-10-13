@@ -61,7 +61,8 @@ def cmd_snapshot(cfg: dict, include_naver: bool) -> int:
             storage.log_run(db, src["id"], False, 0, str(e)[:200])
             print(f"  ✗ {src['name']}: {e}")
     for name, fn in (("google_trends", signals.google_trends), ("google_news", signals.google_news),
-                     ("youtube", signals.youtube_discovery)):
+                     ("youtube", signals.youtube_discovery), ("youtube_chart", signals.youtube_chart),
+                     ("x_trends", signals.x_trends), ("ent_news", signals.ent_news)):
         if not cfg["signals"].get(name, {}).get("enabled"):
             continue
         try:
@@ -73,6 +74,16 @@ def cmd_snapshot(cfg: dict, include_naver: bool) -> int:
             failures += 1
             storage.log_run(db, name, False, 0, str(e)[:200])
             print(f"  ✗ {name}: {e}")
+    from trendbot.collectors import instagram
+    if instagram.configured() and instagram.watchlist():
+        try:
+            sigs, failed = instagram.collect(cfg)
+            storage.save_signals(db, sigs)
+            storage.log_run(db, "instagram", True, len(sigs), f"읽지 못한 계정: {', '.join(failed)}" if failed else "")
+            print(f"  ✓ instagram: 튄 게시물 {len(sigs)}건" + (f" (읽지 못한 계정 {len(failed)}개)" if failed else ""))
+        except Exception as e:
+            storage.log_run(db, "instagram", False, 0, str(e)[:200])
+            print(f"  ✗ instagram: {e}")
     storage.prune(db)
     return 1 if failures and failures >= len(cfg["sources"]) else 0
 

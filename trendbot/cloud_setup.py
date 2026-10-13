@@ -5,7 +5,8 @@
 2. KV 저장소(피드백·집 PC 도우미)    5. 집 PC 도우미 창구(/api/agent)만 잠금 예외 (기기 토큰으로 따로 확인)
 3. 사이트 설정값(로그인 검증값, 대시보드용 GitHub 토큰)
 
-필요한 GitHub 비밀값: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, ALLOWED_EMAILS, (DASHBOARD_TOKEN)
+필요한 GitHub 비밀값: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, ALLOWED_EMAILS, (DASHBOARD_TOKEN, SITE_DOMAIN)
+SITE_DOMAIN(내 도메인)을 넣으면 사이트에 그 주소를 붙이고, 로그인 잠금도 같은 주소에 함께 겁니다.
 """
 
 from __future__ import annotations
@@ -57,7 +58,26 @@ def _upsert_app(cf: Client, apps: list[dict], body: dict) -> dict:
     return cf.call("POST", "/access/apps", json=body)
 
 
-def ensure_access(cf: Client, host: str, allowed: list[str]) -> tuple[str, str]:
+def site_domain() -> str | None:
+    raw = (os.environ.get("SITE_DOMAIN") or "").strip().lower()
+    raw = re.sub(r"^https?://", "", raw).strip("/")
+    if not raw:
+        return None
+    if not re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", raw):
+        raise SetupError(f"SITE_DOMAIN 형식이 이상합니다: {raw} (예: dsbg.mydomain.com)")
+    return raw
+
+
+def ensure_custom_domain(cf: Client, domain: str) -> str:
+    """Pages에 내 도메인 연결. 상태 문자열을 돌려줌 (active / pending 등)."""
+    have = cf.call("GET", f"/pages/projects/{PROJECT}/domains") or []
+    cur = next((d for d in have if d.get("name") == domain), None)
+    if not cur:
+        cur = cf.call("POST", f"/pages/projects/{PROJECT}/domains", json={"name": domain})
+    return cur.get("status") or "pending"
+
+
+def ensure_access(cf: Client, host: str, allowed: list[str], domain: str | None = None) -> tuple[str, str]:
     try:
         org = cf.call("GET", "/access/organizations")
     except CloudflareError as e:
@@ -67,13 +87,14 @@ def ensure_access(cf: Client, host: str, allowed: list[str]) -> tuple[str, str]:
     apps = cf.call("GET", "/access/apps") or []
     app = _upsert_app(cf, apps, {
         "name": APP_NAME, "type": "self_hosted", "domain": host,
-        "self_hosted_domains": [host, f"*.{host}"],  # 미리보기 주소까지 잠금
+        "self_hosted_domains": [host, f"*.{host}"] + ([domain] if domain else []),  # 미리보기·내 도메인까지 잠금
         "session_duration": "720h", "app_launcher_visible": False,
         "policies": [{"name": "팀원", "decision": "allow", "precedence": 1,
                       "include": [{"email": {"email": e}} for e in allowed]}],
     })
     _upsert_app(cf, apps, {
         "name": AGENT_APP_NAME, "type": "self_hosted", "domain": f"{host}/api/agent",
+        "self_hosted_domains": [f"{host}/api/agent"] + ([f"{domain}/api/agent"] if domain else []),
         "session_duration": "24h", "app_launcher_visible": False,
         "policies": [{"name": "기기 토큰으로 확인", "decision": "bypass", "precedence": 1,
                       "include": [{"everyone": {}}]}],
@@ -100,6 +121,7 @@ def run(cf: Client | None = None) -> list[str]:
         if not os.environ.get(k):
             raise SetupError(f"{k} 비밀값이 비어 있습니다 (keys-guide 참고)")
     allowed = emails()
+    domain = site_domain()
     cf = cf or Client()
     done = []
     try:
@@ -107,8 +129,11 @@ def run(cf: Client | None = None) -> list[str]:
         done.append(f"사이트 주소: https://{host}")
         kv_id = cf.kv_namespace(create=True)
         done.append("저장소(KV) 준비")
-        team, aud = ensure_access(cf, host, allowed)
+        team, aud = ensure_access(cf, host, allowed, domain)  # 잠금을 먼저 건 뒤에 도메인을 붙임
         done.append(f"팀원 로그인 잠금: {len(allowed)}명 ({', '.join(allowed)})")
+        if domain:
+            status = ensure_custom_domain(cf, domain)
+            done.append(f"내 도메인: https://{domain} ({'연결됨' if status == 'active' else '연결 중, 몇 분~몇 시간 뒤 열림'})")
         configure_project(cf, kv_id, team, aud)
         done.append("사이트 설정값 연결" + ("" if os.environ.get("DASHBOARD_TOKEN") else
                                       " (DASHBOARD_TOKEN이 없어 대시보드 버튼은 꺼진 상태)"))

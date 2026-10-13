@@ -61,7 +61,7 @@ def link_key(url: str) -> str:
 
 @dataclass
 class Item:
-    kind: str  # post | trend | news | youtube
+    kind: str  # post | trend | xtrend | news | youtube
     source_id: str
     title: str
     url: str
@@ -114,7 +114,8 @@ def build_items(posts: list[dict], signals: list[dict], aliases: dict, routine: 
     for s in signals:
         if any(r in s["title"] for r in routine):
             continue
-        kind = {"google_trends": "trend", "google_news": "news", "youtube": "youtube"}.get(s["kind"], s["kind"])
+        kind = {"google_trends": "trend", "google_news": "news", "ent_news": "news", "youtube": "youtube",
+                "x_trend": "xtrend", "insta": "insta"}.get(s["kind"], s["kind"])
         items.append(Item(kind, s["kind"], s["title"], s.get("url") or "", s, tokens(s["title"], aliases)))
     return items
 
@@ -134,10 +135,11 @@ def cluster(items: list[Item]) -> list[Story]:
         else:
             by_link[k] = i
 
-    # 2. 구글 트렌드 검색어 앵커
-    anchors = [(i, normalize(it.title)) for i, it in enumerate(items) if it.kind == "trend" and len(normalize(it.title)) >= 2]
+    # 2. 검색어 앵커: 구글 트렌드·X 트렌드 키워드가 제목에 그대로 들어 있으면 같은 이야기
+    anchors = [(i, normalize(it.title)) for i, it in enumerate(items)
+               if it.kind in ("trend", "xtrend") and len(normalize(it.title)) >= 2]
     for i, it in enumerate(items):
-        if it.kind == "trend":
+        if it.kind in ("trend", "xtrend"):
             continue
         norm = normalize(it.title)
         for ai, akey in anchors:

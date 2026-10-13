@@ -34,6 +34,9 @@ def _evidence_line(c: Candidate, cfg: dict) -> str:
         parts.append(f"주요 뉴스 {c.news_count}건")
     if c.yt_views:
         parts.append(f"유튜브 {_fmt(c.yt_views)}회")
+    xranks = [i.data.get("extra", {}).get("rank") or 99 for i in c.story.items if i.kind == "xtrend"]
+    if xranks:
+        parts.append(f"X 트렌드 {min(xranks)}위" if min(xranks) < 99 else "X 트렌드")
     return " + ".join(parts)
 
 
@@ -202,9 +205,25 @@ def build_edition(db: sqlite3.Connection, cfg: dict, date: str | None = None, us
     yt = [s for s in signals if s["kind"] == "youtube"]
     if yt and cfg["signals"]["youtube"].get("champion"):
         top = max(yt, key=lambda s: s.get("value") or 0)
-        champs.append({"source_id": "youtube", "name": "유튜브 급상승", "score": top.get("value") or 0,
+        champs.append({"source_id": "youtube", "name": "유튜브 인기", "score": top.get("value") or 0,
                        "strength": "쇼츠" if top["extra"].get("shorts") else None,
                        "post": {"title": top["title"], "url": top["url"], "views": top.get("value"),
+                                "likes": top["extra"].get("likes"), "comments": top["extra"].get("comments")}})
+
+    # X 트렌드 1위 (가장 최근 수집 기준)
+    xt = [s for s in signals if s["kind"] == "x_trend"]
+    if xt and cfg["signals"].get("x_trends", {}).get("champion"):
+        top = max(xt, key=lambda s: (s.get("value") or 0, s.get("first_at") or ""))
+        champs.append({"source_id": "x_trends", "name": "X 트렌드", "score": top.get("value") or 0, "strength": None,
+                       "post": {"title": top["extra"].get("tag") or top["title"], "url": top["url"]}})
+
+    # 인스타 1위 (감시 계정 중 평소 대비 가장 크게 튄 게시물)
+    ig = [s for s in signals if s["kind"] == "insta"]
+    if ig:
+        top = max(ig, key=lambda s: s["extra"].get("ratio") or 0)
+        champs.append({"source_id": "instagram", "name": "인스타", "score": top.get("value") or 0,
+                       "strength": f"평소 {top['extra'].get('ratio')}배",
+                       "post": {"title": f"@{top['extra'].get('account')} {top['title']}", "url": top["url"],
                                 "likes": top["extra"].get("likes"), "comments": top["extra"].get("comments")}})
 
     health = storage.source_health(db, since)

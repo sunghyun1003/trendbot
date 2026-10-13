@@ -37,6 +37,11 @@
     <ul class="health" id="keys"></ul>
     <p class="adm-note" id="keys-note"></p>
 
+    <h2>인스타 감시 계정 <small>한 줄에 하나, @ 없이</small></h2>
+    <textarea class="adm-ta" id="ig" rows="6" placeholder="예: 매체나 밈 계정 아이디"></textarea>
+    <div class="adm-btns"><button class="btn ghost" id="ig-save">저장</button></div>
+    <p class="adm-note">비즈니스·크리에이터 계정만 읽을 수 있어요. 인스타 키를 넣기 전까지는 저장만 되고 수집은 하지 않아요.</p>
+
     <h2>사이트 켜기·끄기</h2>
     <ul class="health" id="srcs"></ul>
   </section>
@@ -66,11 +71,13 @@ async function load(){
   const add=d.repo?`https://github.com/${d.repo}/settings/secrets/actions/new`:'';
   $('#keys').innerHTML=d.keys.map(k=>`<li class="${k.ok?'ok':(k.required?'bad':'off')}"><span class="dot"></span><b>${esc(k.label)}</b><span>${k.ok?'✓':(add?`<a href="${add}" target="_blank" rel="noopener">넣기 (${k.name})</a>`:'✗')}</span></li>`).join('');
   $('#keys-note').innerHTML=d.ready?(d.repo?`키를 넣거나 바꾼 뒤에는 <a href="https://github.com/${d.repo}/actions/workflows/setup.yml" target="_blank" rel="noopener">처음 설정</a>을 한 번 더 눌러 주세요.`:''):'DASHBOARD_TOKEN을 넣고 처음 설정을 다시 실행하면 버튼이 켜져요.';
+  $('#ig').value=(d.instagram||[]).join('\n');
   $('#srcs').innerHTML=d.sources.map(s=>`<li class="${s.enabled?'ok':'off'}"><span class="dot"></span><b>${esc(s.name)}</b><span><label class="sw"><input type="checkbox" data-src="${esc(s.id)}" ${s.enabled?'checked':''}><i></i></label></span></li>`).join('');
 }
 document.addEventListener('click',async ev=>{
   const b=ev.target.closest('[data-run]');if(b){b.disabled=true;await call({action:'run',task:b.dataset.run});setTimeout(load,4000);b.disabled=false;}
   if(ev.target.closest('#naver-now')) call({action:'naver_now'});
+  if(ev.target.closest('#ig-save')) call({action:'watchlist',accounts:$('#ig').value.split(/\s+/)});
   if(ev.target.closest('#helper')){const r=await fetch('api/admin',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'helper'})});
     if(!r.ok)return toast('받지 못했어요');const u=URL.createObjectURL(await r.blob());const x=document.createElement('a');x.href=u;x.download='dsbg-setup.cmd';x.click();toast('집 PC에서 이 파일을 더블클릭하세요');}
 });

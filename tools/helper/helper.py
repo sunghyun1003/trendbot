@@ -1,6 +1,6 @@
 """ㄷㅅㅂㄱ 집 PC 도우미 (윈도우 작업 스케줄러가 30분마다 조용히 실행).
 
-하는 일 (디젤매니아 = 네이버 카페 전용, 나머지 수집은 GitHub 서버가 함)
+하는 일 (네이버 카페 전용: 디젤매니아·파우더룸·스사사 등, 나머지 수집은 GitHub 서버가 함)
 - 매번: 사이트에 '살아 있음'과 네이버 로그인 상태를 알림, 새 버전 코드가 있으면 받아 둠
 - 하루 2번(10시간 간격) 또는 대시보드에서 '디젤매니아 지금 수집'을 눌렀을 때:
   인기글 목록 + 상위 글 원문·사진을 읽어 사이트로 보냄
@@ -87,23 +87,21 @@ def save_state(**kw) -> None:
     STATE.write_text(json.dumps(s), encoding="utf-8")
 
 
-def collect(site: Site) -> tuple[str, str]:
-    """디젤매니아 수집 → 사이트로 보냄. (네이버 상태, 메시지)"""
+def collect_one(site: Site, src: dict) -> tuple[str, str]:
+    """카페 한 곳 수집 → 사이트로 보냄. (네이버 상태, 메시지)"""
     from trendbot.collectors import media
     from trendbot.collectors.naver_cafe import LoginRequired, collect as cafe_collect, fetch_originals
-    from trendbot.config import load_config
     from trendbot.models import now_iso
 
-    src = next(s for s in load_config()["sources"] if s.get("kind") == "naver_cafe")
     at = now_iso()
     try:
         posts = cafe_collect(src)
     except LoginRequired as e:
         site.put("batch", json={"source_id": src["id"], "at": at, "ok": False, "message": str(e)})
-        return "login", str(e)
+        return "login", f"{src['name']}: {e}"
     if not posts:
         site.put("batch", json={"source_id": src["id"], "at": at, "ok": False, "message": "인기글을 하나도 읽지 못함"})
-        return "ok", "인기글 0건"
+        return "ok", f"{src['name']}: 인기글 0건"
     top = sorted(posts, key=lambda p: p.rank)[:TOP_ORIGINALS]
     originals = fetch_originals([p.url for p in top])
     day = at[:10]
@@ -117,8 +115,26 @@ def collect(site: Site) -> tuple[str, str]:
             site.put("media", params={"name": s["file"].removeprefix("media/")}, content=f.read_bytes())
     site.put("batch", json={"source_id": src["id"], "at": at, "ok": True,
                             "posts": [p.to_dict() for p in posts], "originals": originals})
+    return "ok", f"{src['name']}: 인기글 {len(posts)}건, 원문 {sum(1 for o in originals.values() if o.get('status') == 'ok')}개"
+
+
+def collect(site: Site) -> tuple[str, str]:
+    """켜져 있는 네이버 카페를 차례로 수집. 한 곳이 실패해도 나머지는 계속.
+    네이버 상태는 모든 카페가 로그인 문제일 때만 'login' (한 곳만 막히면 그 카페 가입 문제)."""
+    from trendbot.collectors import media
+    from trendbot.config import load_config
+
+    cafes = [s for s in load_config()["sources"] if s.get("kind") == "naver_cafe" and s.get("enabled", True)]
+    results = []
+    for src in cafes:
+        try:
+            results.append(collect_one(site, src))
+        except Exception as e:  # 이 카페만 건너뜀
+            results.append(("error", f"{src['name']}: {e.__class__.__name__}"))
     media.prune(7)  # 집 PC에는 일주일만 남김 (사이트 쪽 보관은 GitHub 서버가 함)
-    return "ok", f"인기글 {len(posts)}건, 원문 {sum(1 for o in originals.values() if o.get('status') == 'ok')}개 보냄"
+    states = [r[0] for r in results]
+    naver = "login" if states and all(s == "login" for s in states) else "ok"
+    return naver, " / ".join(r[1] for r in results)[:300]
 
 
 def run(force_collect: bool = False) -> int:

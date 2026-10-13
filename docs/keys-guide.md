@@ -26,7 +26,9 @@
 | 4 | (넣을 값 없음) | Cloudflare 팀 로그인(Zero Trust) 시작 | 필수 | 무료 | 5분 |
 | 5 | `ALLOWED_EMAILS` | 사이트를 볼 팀원 이메일 | 필수 | — | 1분 |
 | 6 | `DASHBOARD_TOKEN` | 사이트의 버튼(지금 수집, 켜기·끄기)용 GitHub 허가증 | 필수 | 무료 | 5분 |
-| 7 | `YOUTUBE_API_KEY` | 유튜브 급상승 영상 | 선택 | 무료 | 10분 |
+| 7 | `YOUTUBE_API_KEY` | 유튜브 급상승·인기 차트 | 선택 | 무료 | 10분 |
+| 8 | `SITE_DOMAIN` | 내 도메인 주소 (예: `dsbg.mydomain.com`) | 선택 | 도메인 구입비 | 20분 |
+| 9 | `META_ACCESS_TOKEN`, `IG_USER_ID` | 인스타 감시 계정 | 선택 (나중에) | 무료 | 30분 |
 
 ---
 
@@ -108,6 +110,43 @@ GitHub 서버가 사이트를 만들고 올리고 잠글 때 쓰는 허가증입
 6. GitHub 비밀값 `YOUTUBE_API_KEY`로 넣습니다.
 
 - 비용은 무료입니다(하루 한도 10,000 중 약 450 사용, 카드 등록 불필요).
+
+## 8. SITE_DOMAIN (Hostinger에서 산 내 도메인 연결)
+
+`trendbot-8se.pages.dev` 대신 내 주소(예: `dsbg.mydomain.com`)로 열고 싶을 때만 합니다.
+
+1. **Hostinger에서 도메인 구입**: hostinger.com → 도메인 검색 → 구입. 호스팅 상품은 필요 없습니다.
+2. **Cloudflare에 도메인 등록**
+   - dash.cloudflare.com → **Add a domain(도메인 추가)** → 산 도메인 입력(예: `mydomain.com`)
+   - 요금제는 **Free** → 계속 누르면 **네임서버 2개**(예: `ada.ns.cloudflare.com`, `bob.ns.cloudflare.com`)가 나옵니다. 이 화면을 열어 둡니다.
+3. **Hostinger에서 네임서버 바꾸기**
+   - Hostinger hPanel → **도메인** → 산 도메인 → **DNS / 네임서버** → **네임서버 변경**
+   - '사용자 지정 네임서버'를 고르고 2번의 Cloudflare 네임서버 2개를 넣고 저장합니다.
+4. **기다리기**: Cloudflare가 "도메인이 활성화됐다"는 메일을 보냅니다(보통 몇 분, 길면 24시간).
+5. **GitHub 비밀값 `SITE_DOMAIN`** 에 쓸 주소를 넣습니다.
+   - 도메인 전체를 쓰려면 `mydomain.com`
+   - 하위 주소를 쓰려면 `dsbg.mydomain.com` (권장: 나중에 도메인을 다른 용도로도 쓸 수 있음)
+6. **'처음 설정'을 다시 한 번** 누릅니다. 새 주소를 사이트에 붙이고, **팀원 로그인 잠금도 새 주소에 함께** 겁니다.
+7. 몇 분 뒤 새 주소로 들어가 6자리 번호 로그인이 뜨면 끝입니다. 기존 `pages.dev` 주소도 계속 열립니다(역시 잠김).
+
+- 3번에서 Hostinger가 "Cloudflare 네임서버로 바꾸면 Hostinger 메일·사이트가 멈춘다"고 경고할 수 있습니다. 이 도메인을 ㄷㅅㅂㄱ에만 쓴다면 무시해도 됩니다.
+
+## 9. 인스타그램 (나중에: Meta 개발자 사이트 접속이 되는 PC에서)
+
+인스타 비즈니스 계정 전환과 페이스북 페이지 연결은 끝난 상태라는 전제입니다.
+
+1. https://developers.facebook.com → 로그인 → **내 앱 → 앱 만들기** → 사용 사례 '기타' → 앱 유형 **비즈니스** → 이름 `dsbg`
+2. 앱 대시보드에서 **Instagram Graph API(Facebook 로그인으로 Instagram API)** 제품을 추가합니다.
+3. **도구 → 그래프 API 탐색기**
+   - 오른쪽 위 앱에서 `dsbg` 선택
+   - 권한 추가: `instagram_basic`, `pages_show_list`, `pages_read_engagement`, `business_management`
+   - **Generate Access Token** → 페이스북 로그인 창에서 연결한 페이지·인스타 계정을 체크하고 허용
+4. 탐색기 주소창에 `me/accounts?fields=name,access_token,instagram_business_account` 를 넣고 **제출**
+   - 결과에서 내 페이지의 `access_token` 값 → GitHub 비밀값 `META_ACCESS_TOKEN`
+   - `instagram_business_account` 안의 `id` 값 → GitHub 비밀값 `IG_USER_ID`
+   - 이 페이지 토큰은 3번 토큰이 '장기 토큰'일 때 만료가 없습니다. 탐색기 토큰은 1시간짜리라, 처음엔 [액세스 토큰 디버거](https://developers.facebook.com/tools/debug/accesstoken/)에서 **액세스 토큰 연장**을 눌러 장기 토큰으로 바꾼 뒤 4번을 다시 실행하세요.
+5. 사이트 **상태** 탭 → '인스타 감시 계정'에 계정을 적고 저장합니다.
+6. 상태 탭 키 목록에 두 키가 ✓로 바뀌면 다음 수집부터 동작합니다.
 
 ---
 
