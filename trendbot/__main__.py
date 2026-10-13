@@ -138,7 +138,7 @@ def cmd_daily(cfg: dict, use_ai: bool, deploy: bool) -> None:
 
 def cmd_deploy() -> None:
     """public/ 폴더를 Cloudflare Pages에 올림. 처음이면 프로젝트부터 만듦."""
-    project = os.environ.get("CF_PAGES_PROJECT", "trendbot")
+    from trendbot.cloudflare import PROJECT as project
     win = sys.platform == "win32"
     wrangler = ["npx", "--yes", "wrangler@3", "pages"]
     # 이미 있으면 실패해도 괜찮음

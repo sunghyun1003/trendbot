@@ -16,7 +16,7 @@ import json
 import os
 import re
 
-from trendbot.cloudflare import PROJECT, Client, CloudflareError
+from trendbot.cloudflare import OLD_PROJECTS, PROJECT, Client, CloudflareError
 from trendbot.config import ROOT
 
 APP_NAME = "ㄷㅅㅂㄱ"
@@ -52,6 +52,23 @@ def ensure_project(cf: Client) -> str:
     return p["subdomain"]
 
 
+def retire_old_projects(cf: Client) -> list[str]:
+    """예전 이름의 사이트(trendbot-xxx.pages.dev)를 지움. 못 지운 곳은 주소를 돌려줘 계속 잠가 둠."""
+    still = []
+    for name in OLD_PROJECTS:
+        if name == PROJECT:
+            continue
+        try:
+            host = cf.call("GET", f"/pages/projects/{name}")["subdomain"]
+        except CloudflareError:
+            continue  # 없음
+        try:
+            cf.call("DELETE", f"/pages/projects/{name}")
+        except CloudflareError:
+            still.append(host)
+    return still
+
+
 def ensure_login_method(cf: Client) -> None:
     """이메일로 받은 6자리 번호로 로그인 (별도 계정 불필요)."""
     idps = cf.call("GET", "/access/identity_providers") or []
@@ -85,7 +102,8 @@ def ensure_custom_domain(cf: Client, domain: str) -> str:
     return cur.get("status") or "pending"
 
 
-def ensure_access(cf: Client, host: str, allowed: list[str], domain: str | None = None) -> tuple[str, str]:
+def ensure_access(cf: Client, host: str, allowed: list[str], domain: str | None = None,
+                  old_hosts: list[str] = ()) -> tuple[str, str]:
     try:
         org = cf.call("GET", "/access/organizations")
     except CloudflareError as e:
@@ -95,7 +113,9 @@ def ensure_access(cf: Client, host: str, allowed: list[str], domain: str | None 
     apps = cf.call("GET", "/access/apps") or []
     app = _upsert_app(cf, apps, {
         "name": APP_NAME, "type": "self_hosted", "domain": host,
-        "self_hosted_domains": [host, f"*.{host}"] + ([domain] if domain else []),  # 미리보기·내 도메인까지 잠금
+        # 미리보기·내 도메인·아직 남은 예전 주소까지 잠금
+        "self_hosted_domains": [host, f"*.{host}"] + ([domain] if domain else [])
+                               + [d for h in old_hosts for d in (h, f"*.{h}")],
         "session_duration": "720h", "app_launcher_visible": False,
         "policies": [{"name": "팀원", "decision": "allow", "precedence": 1,
                       "include": [{"email": {"email": e}} for e in allowed]}],
@@ -158,7 +178,10 @@ def run(cf: Client | None = None) -> list[str]:
         done.append(f"사이트 주소: https://{host}")
         kv_id = cf.kv_namespace(create=True)
         done.append("저장소(KV) 준비")
-        team, aud = ensure_access(cf, host, allowed, domain)  # 잠금을 먼저 건 뒤에 도메인을 붙임
+        old = retire_old_projects(cf)
+        if old:
+            done.append(f"예전 주소 {', '.join(old)}: 지우지 못해 잠금만 유지 (Cloudflare Pages 화면에서 직접 삭제 가능)")
+        team, aud = ensure_access(cf, host, allowed, domain, old)  # 잠금을 먼저 건 뒤에 도메인을 붙임
         done.append(f"팀원 로그인 잠금: {len(allowed)}명 ({', '.join(allowed)})")
         if domain:
             status = ensure_custom_domain(cf, domain)

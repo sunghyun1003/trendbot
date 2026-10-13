@@ -17,6 +17,7 @@ class FakeCF:
         self.idps: list[dict] = []
         self.workers: dict[str, dict] = {}
         self.worker_denied = False
+        self.delete_denied = False
         self.calls: list[tuple[str, str]] = []
 
     def ok(self, result, info=None):
@@ -58,6 +59,11 @@ class FakeCF:
             if req.method == "PATCH":
                 self.projects[m.group(1)].setdefault("patches", []).append(body)
                 return self.ok(self.projects[m.group(1)])
+            if req.method == "DELETE" and m.group(1) in self.projects:
+                if self.delete_denied:
+                    return httpx.Response(400, json={"success": False, "errors": [{"message": "too many deployments"}]})
+                del self.projects[m.group(1)]
+                return self.ok(None)
             if m.group(1) in self.projects:
                 return self.ok({**self.projects[m.group(1)], "subdomain": m.group(1) + ".pages.dev"})
             return httpx.Response(404, json={"success": False, "errors": [{"message": "not found"}]})

@@ -14,7 +14,8 @@ import httpx
 
 API = "https://api.cloudflare.com/client/v4"
 KV_TITLE = "dsbg-store"
-PROJECT = os.environ.get("CF_PAGES_PROJECT", "trendbot")
+PROJECT = os.environ.get("CF_PAGES_PROJECT", "dsbg")  # 사이트 주소 앞부분 (dsbg.pages.dev, 남이 쓰면 dsbg-xxx)
+OLD_PROJECTS = ("trendbot",)  # 예전 주소. 처음 설정이 지움
 
 
 class CloudflareError(Exception):

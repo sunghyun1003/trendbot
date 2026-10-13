@@ -21,7 +21,7 @@
 
 1. https://github.com/sunghyun1003/trendbot/actions/workflows/setup.yml 을 엽니다.
 2. 오른쪽의 **Run workflow → Run workflow**(초록 버튼)를 누릅니다.
-3. 5분쯤 뒤 새로고침하면 실행 기록 옆에 ✓가 생깁니다. 기록을 누르면 **사이트 주소**가 적혀 있습니다(예: `https://trendbot.pages.dev`).
+3. 5분쯤 뒤 새로고침하면 실행 기록 옆에 ✓가 생깁니다. 기록을 누르면 **사이트 주소**가 적혀 있습니다(예: `https://dsbg.pages.dev`).
 
 이 버튼이 자동으로 하는 일:
 - Cloudflare에 사이트, 피드백 저장소, 팀원 로그인 잠금을 만듭니다.

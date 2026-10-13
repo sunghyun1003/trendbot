@@ -119,7 +119,7 @@ GitHub 서버가 사이트를 만들고 올리고 잠글 때 쓰는 허가증입
 
 ## 8. SITE_DOMAIN (Hostinger에서 산 내 도메인 연결)
 
-`trendbot-8se.pages.dev` 대신 내 주소(예: `dsbg.mydomain.com`)로 열고 싶을 때만 합니다.
+`dsbg.pages.dev` 대신 내 주소(예: `dsbg.mydomain.com`)로 열고 싶을 때만 합니다.
 
 1. **Hostinger에서 도메인 구입**: hostinger.com → 도메인 검색 → 구입. 호스팅 상품은 필요 없습니다.
 2. **Cloudflare에 도메인 등록**
