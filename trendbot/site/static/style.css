@@ -523,8 +523,8 @@ svg { display: block; flex: none; }
 .health .bad .st { color: var(--rec); }
 .health li .sw { margin-left: 12px; flex: none; }
 .health .off b { color: var(--t3); }
-.health .warn .dot { background: var(--orange); box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 18%, transparent); }
-.health .warn .st { color: #c77d00; }
+.health .flaky .dot { background: var(--orange); box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 18%, transparent); }
+.health .flaky .st { color: #c77d00; }
 
 /* 이야기 수명 */
 .life { margin-left: auto; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: var(--chip, #f2f4f6); color: #4e5968; }
@@ -542,3 +542,5 @@ svg { display: block; flex: none; }
 .terms.dict dd a { display: block; margin-top: 4px; font-size: 12px; color: #8b95a1; text-decoration: none; }
 #view { margin-bottom: 6px; }
 [hidden] { display: none !important; }
+/* 필터 칩: 넓은 화면은 여러 줄로, 좁은 화면은 옆으로 밀기 */
+@media (min-width: 760px) { .pills { flex-wrap: wrap; overflow: visible; margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; } }

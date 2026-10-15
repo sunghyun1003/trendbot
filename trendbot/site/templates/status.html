@@ -12,7 +12,7 @@
 {% macro rows(list, switch) %}
   <ul class="health">
     {% for s in list %}
-    <li class="{{ 'off' if not s.enabled else ('ok' if s.ok else ('warn' if s.warn else 'bad')) }}" {% if switch %}data-src="{{ s.id }}"{% endif %}>
+    <li class="{{ 'off' if not s.enabled else ('ok' if s.ok else ('flaky' if s.warn else 'bad')) }}" {% if switch %}data-src="{{ s.id }}"{% endif %}>
       <span class="dot"></span><b>{{ s.name }}</b>
       <span class="st">{% if not s.enabled %}꺼짐{% elif s.ok %}<time data-at="{{ s.at }}">{{ (s.at or '')[11:16] }}</time>{% if s.rows is not none %} · {{ s.rows }}건{% endif %}{% elif s.warn %}잠깐 실패 · <time data-at="{{ s.last_ok }}">{{ (s.last_ok or '')[11:16] }}</time> 정상{% else %}{{ why(s.message) }}{% endif %}</span>
     </li>

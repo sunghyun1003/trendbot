@@ -62,7 +62,7 @@ function render(){
   }
   $('count').textContent=`${rs.length}건`; $('grid').hidden=false; $('dict').hidden=true;
   $('grid').innerHTML = rs.length ? rs.map(r=>`<a class="tile" data-f="${esc(r.field)}" href="{{ root }}d/${r.date}.html#c-${r.id}">
-    ${r.vid?`<img src="https://i.ytimg.com/vi/${r.vid}/mqdefault.jpg" alt="" loading="lazy">`:''}
+    ${r.vid?`<img src="https://i.ytimg.com/vi/${r.vid}/mqdefault.jpg" alt="" loading="lazy" onerror="this.remove()">`:''}
     <span class="tile-g g-${r.grade}">${GL[r.grade]||''}</span><span class="tile-t">${esc(r.headline)}</span>
     <span class="tile-m">${r.date.slice(5).replace('-','.')} · ${esc(r.field)}${r.life?' · '+esc(r.life):''}</span></a>`).join('') : '<div class="empty"><b>없어요</b></div>';
 }
