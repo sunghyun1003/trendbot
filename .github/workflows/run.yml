@@ -84,7 +84,7 @@ jobs:
         if: env.PUBLISH == 'yes'
         run: python -m playwright install --with-deps chromium
       - uses: actions/setup-node@v4
-        if: env.PUBLISH == 'yes'
+        if: env.CLOUDFLARE_API_TOKEN != ''
         with:
           node-version: "22"
       - name: 오늘의 판 만들기 + 사이트 올리기
@@ -96,6 +96,10 @@ jobs:
             flags="$flags --no-deploy"; echo "Cloudflare 키가 없어 사이트는 올리지 않음"
           fi
           python -m trendbot daily $flags
+
+      - name: 상태 탭 새로고침 (수집만 한 때도 사이트를 다시 올려 최신 수집 결과를 보여 줌)
+        if: env.PUBLISH != 'yes' && env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: python -m trendbot build-site && python -m trendbot deploy || echo "상태 탭 새로고침 실패 (다음 수집 때 다시)"
 
       - name: 데이터 저장
         if: always()
