@@ -38,9 +38,19 @@ SCHEMA = {
                     "context": {"type": "string", "enum": ["확인", "제목만"]},
                     "exclude": {"type": "string", "enum": EXCLUDE},
                     "caution": {"type": "boolean"},
+                    "terms": {  # 신조어·밈 풀이 (없으면 빈 목록)
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {"term": {"type": "string"}, "meaning": {"type": "string"},
+                                           "sure": {"type": "boolean"}},
+                            "required": ["term", "meaning", "sure"],
+                            "additionalProperties": False,
+                        },
+                    },
                 },
                 "required": ["id", "headline", "why", "field", "attributes", "marketer", "context", "exclude",
-                             "caution"],
+                             "caution", "terms"],
                 "additionalProperties": False,
             },
         }
@@ -177,7 +187,7 @@ def apply(card: dict, result: dict | None) -> dict:
                     why=card["evidence_line"],
                     field=card.get("field_hint") or guess_field([p["title"] for p in card["posts"][:3]] + card.get("news", [])[:3]),
                     attributes=[],
-                    marketer="없음", context="제목만", exclude="없음", caution=False, ai=False)
+                    marketer="없음", context="제목만", exclude="없음", caution=False, ai=False, terms=[])
         return card
     exclude = result.get("exclude", "없음")
     caution = bool(result.get("caution"))
@@ -187,5 +197,6 @@ def apply(card: dict, result: dict | None) -> dict:
     if result.get("context") == "제목만" and card["posts"]:
         headline = card["posts"][0]["title"]
     card.update(headline=headline, why=result["why"], field=result["field"], attributes=result["attributes"],
-                marketer=result["marketer"], context=result["context"], exclude=exclude, caution=caution, ai=True)
+                marketer=result["marketer"], context=result["context"], exclude=exclude, caution=caution, ai=True,
+                terms=[t for t in (result.get("terms") or [])[:3] if t.get("term") and t.get("meaning")])
     return card

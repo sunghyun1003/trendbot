@@ -79,6 +79,25 @@ def attach_media(posts: list[dict], cfg: dict, day: str, capture: bool = True, m
                 o["capture_error"] = e.__class__.__name__
 
 
+def lifespan(c: Candidate, today: str, now: datetime | None = None) -> dict:
+    """이야기 수명: 며칠째인지 + 지금 커지는 중인지(최근 12시간에 새로 올라온 글 비율)."""
+    now = now or datetime.now().astimezone()
+    seen = sorted(p.data.get("first_seen") for p in c.story.posts if p.data.get("first_seen"))
+    starts = [d[:10] for d in seen[:1]] + ([c.first_date] if c.first_date else [])
+    first = min(starts) if starts else today
+    day = (datetime.fromisoformat(today) - datetime.fromisoformat(first)).days + 1
+    recent = (now - timedelta(hours=12)).isoformat()
+    fresh = sum(1 for d in seen if d >= recent)
+    if seen and fresh / len(seen) >= 0.4:
+        trend = "up"
+    elif seen and fresh == 0 and day >= 2:
+        trend = "down"
+    else:
+        trend = "flat"
+    label = {"up": "확산 중 ↑", "flat": "유지", "down": "식는 중 ↓"}[trend]
+    return {"day": max(day, 1), "trend": trend, "label": ("새로 뜸" if day <= 1 and trend == "up" else f"{max(day, 1)}일째 · {label}")}
+
+
 def _card(c: Candidate, subs: list[Candidate], cfg: dict, fetch_context: bool) -> dict:
     srcs = sources_by_id(cfg)
     posts = sorted(c.story.posts, key=lambda i: (i.data.get("first_seen") or ""))
@@ -147,6 +166,8 @@ def build_edition(db: sqlite3.Connection, cfg: dict, date: str | None = None, us
     groups = select(stories, cfg, published)
 
     cards = [_card(c, subs, cfg, fetch_context) for c, subs in groups[:30]]
+    for card, (c, _subs) in zip(cards, groups[:30]):
+        card["life"] = lifespan(c, date, now)
     if fetch_context and fetch_media:
         attach_media([c["posts"][0] for c in cards if c["posts"]], cfg, date, capture=False, max_images=3)
     results, ai_error = editor.edit(cards) if use_ai else ({}, "AI 사용 안 함")

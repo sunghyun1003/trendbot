@@ -12,6 +12,8 @@ export const KEYS = [
   { name: "SITE_DOMAIN", label: "내 도메인 (선택)", required: false },
   { name: "META_ACCESS_TOKEN", label: "인스타 토큰 (선택)", required: false },
   { name: "IG_USER_ID", label: "인스타 계정 번호 (선택)", required: false },
+  { name: "GMAIL_ADDRESS", label: "아침 메일 보내는 Gmail (선택)", required: false },
+  { name: "GMAIL_APP_PASSWORD", label: "Gmail 앱 비밀번호 (선택)", required: false },
 ];
 
 async function gh(env, method, path, body) {

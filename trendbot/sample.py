@@ -16,7 +16,12 @@ def _card(i, grade, badges, headline, why, field, attrs, age, marketer, path, po
             "attributes": attrs, "age": age, "marketer": marketer, "context": context, "caution": caution,
             "path": path, "posts": posts, "videos": videos or [], "subs": subs or [], "score": score,
             "pods": pods, "spread": {"sites": sites, "pods": len(pods), "traffic": 0}, "tokens": [], "ai": True,
-            "exclude": "없음"}
+            "exclude": "없음", "life": [{"day": 1, "trend": "up", "label": "새로 뜸"},
+                                        {"day": 3, "trend": "up", "label": "3일째 · 확산 중 ↑"},
+                                        {"day": 2, "trend": "flat", "label": "2일째 · 유지"},
+                                        {"day": 4, "trend": "down", "label": "4일째 · 식는 중 ↓"}][i % 4],
+            "terms": [{"term": "[견본] 품절 대란템", "meaning": "구하기 힘들어 줄 서서 사는 인기 상품", "sure": True},
+                      {"term": "[견본] 킹받네", "meaning": "'열받네'를 과장한 말, 웃기게 약 올릴 때", "sure": False}] if i == 2 else []}
 
 
 def sample_editions() -> list[dict]:

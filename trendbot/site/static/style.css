@@ -226,10 +226,10 @@ svg { display: block; flex: none; }
 .searchbar svg { width: 19px; height: 19px; fill: none; stroke: var(--t3); stroke-width: 2; stroke-linecap: round; }
 .searchbar input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 16px; }
 .searchbar select { border: 0; background: var(--fill); border-radius: 10px; padding: 7px 10px; font-size: 13px; font-weight: 600; color: var(--t2); outline: none; }
-.seg { display: flex; gap: 6px; overflow-x: auto; margin: 12px -16px 0; padding: 0 16px 4px; scrollbar-width: none; }
-.seg::-webkit-scrollbar, .dates::-webkit-scrollbar { display: none; }
-.seg button { flex: none; height: 36px; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--t2); background: var(--surface); box-shadow: var(--shadow); }
-.seg button.on { background: var(--t1); color: var(--surface); }
+.pills { display: flex; gap: 6px; overflow-x: auto; margin: 12px -16px 0; padding: 0 16px 4px; scrollbar-width: none; }
+.pills::-webkit-scrollbar, .dates::-webkit-scrollbar { display: none; }
+.pills button { flex: none; height: 36px; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--t2); background: var(--surface); box-shadow: var(--shadow); }
+.pills button.on { background: var(--t1); color: var(--surface); }
 .dates { display: flex; gap: 14px; overflow-x: auto; margin: 16px 0 10px; padding: 0 4px; scrollbar-width: none; }
 .dates a { flex: none; font-size: 13px; font-weight: 600; color: var(--t3); font-variant-numeric: tabular-nums; }
 .dates a:hover { color: var(--t1); }
@@ -525,3 +525,20 @@ svg { display: block; flex: none; }
 .health .off b { color: var(--t3); }
 .health .warn .dot { background: var(--orange); box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 18%, transparent); }
 .health .warn .st { color: #c77d00; }
+
+/* 이야기 수명 */
+.life { margin-left: auto; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: var(--chip, #f2f4f6); color: #4e5968; }
+.life.l-up { background: color-mix(in srgb, var(--rec) 12%, transparent); color: var(--rec); }
+.life.l-down { color: #8b95a1; }
+/* 신조어·밈 풀이 */
+.terms { margin: 8px 0 0; display: grid; gap: 6px; }
+.terms div { display: flex; gap: 8px; align-items: baseline; font-size: 13px; line-height: 1.45; background: color-mix(in srgb, var(--blue) 6%, transparent); border-radius: 10px; padding: 7px 10px; }
+.terms dt { font-weight: 700; color: var(--blue); white-space: nowrap; }
+.terms dd { margin: 0; color: inherit; }
+.terms em { font-style: normal; font-size: 11px; color: #8b95a1; border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; margin-left: 2px; }
+
+.count { margin: 8px 2px; font-size: 13px; color: #8b95a1; }
+.terms.dict div { flex-direction: column; gap: 2px; padding: 10px 12px; }
+.terms.dict dd a { display: block; margin-top: 4px; font-size: 12px; color: #8b95a1; text-decoration: none; }
+#view { margin-bottom: 6px; }
+[hidden] { display: none !important; }

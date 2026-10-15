@@ -137,17 +137,25 @@ def cmd_daily(cfg: dict, use_ai: bool, deploy: bool) -> None:
     print(f"오늘의 필수 {len(edition['cards'])}건, 채널 1위 {sum(1 for c in edition['champions'] if c['post'])}줄")
     cmd_build_site(cfg)
     if deploy:
-        cmd_deploy()
+        site = cmd_deploy()
+        try:  # 아침 요약 메일: 사이트가 올라간 뒤에만, 실패해도 발행은 끝난 상태
+            from trendbot import mailer
+            print(mailer.send(edition, site, db))
+        except Exception as e:
+            print(f"아침 메일 실패: {e.__class__.__name__} {str(e)[:200]}")
 
 
-def cmd_deploy() -> None:
+def cmd_deploy() -> str:
     """public/ 폴더를 Cloudflare Pages에 올림.
     올리기 전에 항상 '처음 설정'과 같은 점검(사이트·팀원 로그인 잠금)을 먼저 해서, 잠기지 않은 주소에는 절대 올리지 않음."""
     from trendbot import cloud_setup
     from trendbot.cloudflare import PROJECT as project
+    site = f"https://{project}.pages.dev"
     try:
         for line in cloud_setup.run():
             print(f"설정 점검: {line}")
+            if line.startswith(("사이트 주소: ", "내 도메인: ")):  # 내 도메인이 있으면 그 주소를 씀
+                site = line.split(": ", 1)[1].split(" ")[0]
     except cloud_setup.SetupError as e:
         raise SystemExit(f"사이트 잠금을 확인하지 못해 올리지 않음: {e}")
     win = sys.platform == "win32"
@@ -159,6 +167,7 @@ def cmd_deploy() -> None:
         shutil.copytree(ROOT / "site_functions", Path(work) / "functions")
         subprocess.run(wrangler + ["deploy", str(ROOT / "public"), "--project-name", project, "--branch", "main",
                                    "--commit-dirty=true"], check=True, cwd=work, shell=win)
+    return site
 
 
 def main(argv: list[str] | None = None) -> int:

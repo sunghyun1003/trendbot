@@ -27,10 +27,11 @@
       <details class="sum">
         <summary><span class="sum-k">요약</span><span class="sum-w">{{ c.why }}</span></summary>
         <div class="sum-b">
-          <div class="chips-s"><span>{{ c.field }}</span>{% for a in c.attributes if a != c.field %}<span>{{ a }}</span>{% endfor %}{% if c.marketer == '활용 기회' %}<span class="hi">활용 기회</span>{% elif c.marketer == '브랜드 주의' %}<span class="lo">브랜드 주의</span>{% endif %}</div>
+          <div class="chips-s">{% if c.life %}<span class="life l-{{ c.life.trend }}">{{ c.life.label }}</span>{% endif %}<span>{{ c.field }}</span>{% for a in c.attributes if a != c.field %}<span>{{ a }}</span>{% endfor %}{% if c.marketer == '활용 기회' %}<span class="hi">활용 기회</span>{% elif c.marketer == '브랜드 주의' %}<span class="lo">브랜드 주의</span>{% endif %}</div>
           {% if c.path|length > 1 %}<ol class="route">{% for r in c.path %}<li><b>{{ r.name|short_label }}</b><span>{{ r.at }}</span></li>{% endfor %}</ol>{% endif %}
         </div>
       </details>
+      {% if c.terms %}<dl class="terms">{% for t in c.terms %}<div><dt>{{ t.term }}</dt><dd>{{ t.meaning }}{% if not t.sure %} <em>추정</em>{% endif %}</dd></div>{% endfor %}</dl>{% endif %}
       {% endif %}
 
       {% if o.status == 'ok' %}

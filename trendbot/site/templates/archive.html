@@ -16,37 +16,63 @@
 
   <div class="searchbar">
     {{ icon('search') }}<input id="q" type="search" placeholder="검색" aria-label="검색">
+    <select id="period" aria-label="기간">
+      <option value="0">전체 기간</option><option value="7">최근 7일</option><option value="30">최근 30일</option>
+    </select>
     <select id="sort" aria-label="정렬">
       <option value="date">최신</option><option value="score">필수점수</option><option value="pods">확산</option>
       <option value="views">조회</option><option value="comments">댓글</option>
     </select>
   </div>
-  <div class="seg" id="chips">
+  <div class="seg" id="view" style="position:static;margin-top:12px">
+    <button class="seg-b on" data-v="stories">이야기</button><button class="seg-b" data-v="terms">신조어·밈 사전</button>
+  </div>
+  <div class="pills" id="chips">
     <button class="on" data-g="">전체</button><button data-g="A">전국 확산</button><button data-g="B">확산 중</button><button data-g="M">한 곳 대박</button>
     {% for f in fields %}<button data-f="{{ f }}">{{ f }}</button>{% endfor %}
   </div>
   <div class="dates">{% for e in editions %}<a href="{{ root }}d/{{ e.date }}.html">{{ e.date[5:]|replace('-','.') }}</a>{% endfor %}</div>
+  <p class="count" id="count"></p>
   <div class="grid" id="grid"></div>
+  <dl class="terms dict" id="dict" hidden></dl>
 </div>
 {% endblock %}
 {% block script %}
 <script>
 const ROWS={{ rows_json|safe }}, GL={A:'전국 확산',B:'확산 중',M:'한 곳 대박'};
-let g='', f='';
-const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let g='', f='', view='stories';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=id=>document.getElementById(id);
+function since(){const d=+$('period').value; if(!d) return ''; const t=new Date(Date.now()-d*864e5); return t.toISOString().slice(0,10);}
+function hit(r,q){ if(!q) return true; q=q.toLowerCase();
+  return [r.headline,r.titles,r.why,r.field,...r.terms.map(t=>t.term+' '+t.meaning)].join(' ').toLowerCase().includes(q); }
 function render(){
-  const q=document.getElementById('q').value.trim(), k=document.getElementById('sort').value;
-  const rs=ROWS.filter(r=>(!q||r.headline.includes(q)||r.titles.includes(q))&&(!g||r.grade===g)&&(!f||r.field===f))
+  const q=$('q').value.trim(), k=$('sort').value, from=since();
+  const rs=ROWS.filter(r=>hit(r,q)&&(!from||r.date>=from)&&(!g||r.grade===g)&&(!f||r.field===f))
     .sort((a,b)=>(b[k]>a[k]?1:b[k]<a[k]?-1:0));
-  document.getElementById('grid').innerHTML = rs.length ? rs.map(r=>`<a class="tile" data-f="${esc(r.field)}" href="{{ root }}d/${r.date}.html#c-${r.id}">
+  $('chips').hidden = view!=='stories'; $('sort').hidden = view!=='stories';
+  if(view==='terms'){
+    const seen=new Map();
+    rs.forEach(r=>r.terms.forEach(t=>{ if(!seen.has(t.term)) seen.set(t.term,{...t,date:r.date,id:r.id,headline:r.headline}); }));
+    const list=[...seen.values()].filter(t=>!q||(t.term+t.meaning+t.headline).toLowerCase().includes(q.toLowerCase()));
+    $('count').textContent=`${list.length}개`; $('grid').hidden=true; $('dict').hidden=false;
+    $('dict').innerHTML = list.length ? list.map(t=>`<div><dt>${esc(t.term)}</dt><dd>${esc(t.meaning)}${t.sure?'':' <em>추정</em>'}
+      <a href="{{ root }}d/${t.date}.html#c-${t.id}">${t.date.slice(5).replace('-','.')} · ${esc(t.headline)}</a></dd></div>`).join('') : '<div class="empty"><b>없어요</b></div>';
+    return;
+  }
+  $('count').textContent=`${rs.length}건`; $('grid').hidden=false; $('dict').hidden=true;
+  $('grid').innerHTML = rs.length ? rs.map(r=>`<a class="tile" data-f="${esc(r.field)}" href="{{ root }}d/${r.date}.html#c-${r.id}">
     ${r.vid?`<img src="https://i.ytimg.com/vi/${r.vid}/mqdefault.jpg" alt="" loading="lazy">`:''}
     <span class="tile-g g-${r.grade}">${GL[r.grade]||''}</span><span class="tile-t">${esc(r.headline)}</span>
-    <span class="tile-m">${r.date.slice(5).replace('-','.')}</span></a>`).join('') : '<div class="empty"><b>없어요</b>다른 조건으로 찾아보세요</div>';
+    <span class="tile-m">${r.date.slice(5).replace('-','.')} · ${esc(r.field)}${r.life?' · '+esc(r.life):''}</span></a>`).join('') : '<div class="empty"><b>없어요</b></div>';
 }
-document.getElementById('chips').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return;
+$('chips').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return;
   document.querySelectorAll('#chips button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
   g=b.dataset.g||''; f=b.dataset.f||''; render();});
-['q','sort'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+$('view').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#view button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  view=b.dataset.v; render();});
+['q','sort','period'].forEach(id=>$(id).addEventListener('input',render));
 render();
 </script>
 {% endblock %}

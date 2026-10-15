@@ -26,6 +26,7 @@ class Candidate:
     score: float
     badges: list[str] = field(default_factory=list)
     update: bool = False
+    first_date: str | None = None   # 예전 판에 처음 나온 날 (이어지는 이야기일 때)
 
     @property
     def id(self) -> str:
@@ -118,6 +119,7 @@ def dedupe_against_history(cands: list[Candidate], published: list[dict], cfg: d
         seen_pods = set().union(*(p["pods"] for p in prior))
         if len(c.pods - seen_pods) >= cfg["grading"]["update_new_pods"]:
             c.update = True
+            c.first_date = min(p["date"] for p in prior)
             c.badges.insert(0, "업데이트")
             out.append(c)
     return out

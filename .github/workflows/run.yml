@@ -40,6 +40,8 @@ env:
   ALLOWED_EMAILS: ${{ secrets.ALLOWED_EMAILS }}      # 올리기 전 로그인 잠금 점검에 씀
   DASHBOARD_TOKEN: ${{ secrets.DASHBOARD_TOKEN }}
   SITE_DOMAIN: ${{ secrets.SITE_DOMAIN }}
+  GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}            # 아침 요약 메일 (없으면 건너뜀)
+  GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
   META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
   IG_USER_ID: ${{ secrets.IG_USER_ID }}
 jobs:

@@ -124,6 +124,8 @@ def build(editions: list[dict], health: list[dict], out: Path = OUT) -> Path:
                 "views": max([p.get("views") or 0 for p in c["posts"]] or [0]),
                 "comments": max([p.get("comments") or 0 for p in c["posts"]] or [0]),
                 "titles": " ".join(p["title"] for p in c["posts"]),
+                "why": c.get("why") or "", "life": (c.get("life") or {}).get("label"),
+                "terms": [{"term": t["term"], "meaning": t["meaning"], "sure": t.get("sure", True)} for t in c.get("terms") or []],
                 "vid": _ytid(c["videos"][0]["url"]) if c.get("videos") else None,
             })
     fields = sorted({r["field"] for r in rows})

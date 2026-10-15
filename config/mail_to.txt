@@ -1,0 +1,3 @@
+# 아침 요약 메일을 받을 주소 (한 줄에 하나). 빼려면 줄을 지우거나 앞에 #을 붙이세요.
+sunghyun.yang@hanwha.com
+sunghyun1003@naver.com

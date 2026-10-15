@@ -129,3 +129,19 @@ def test_source_power_raises_score():
     big = evaluate(story("dcbest", "theqoo", "ruliweb"), cfg)            # 남·여·취미 3곳, 화력 3+3+2
     small = evaluate(story("humoruniv", "cook82", "ppomppu_deal"), cfg)  # 남·여·30대 3곳, 화력 2+1+1
     assert big and small and big.score > small.score
+
+
+def test_lifespan_labels():
+    from datetime import datetime
+    from trendbot.pipeline import cluster as cl
+    from trendbot.pipeline.edition import lifespan
+    from trendbot.pipeline.grade import Candidate
+    now = datetime.fromisoformat("2026-10-15T07:00:00+09:00")
+    def cand(seen, first_date=None):
+        items = [cl.Item("post", "theqoo", "t", f"u{i}", {"first_seen": s}) for i, s in enumerate(seen)]
+        c = Candidate(cl.Story(items), "B", set(), set(), False, False, 0, 0, 0, 0, 0)
+        c.first_date = first_date
+        return c
+    assert lifespan(cand(["2026-10-15T01:00:00+09:00", "2026-10-15T03:00:00+09:00"]), "2026-10-15", now)["label"] == "새로 뜸"
+    assert lifespan(cand(["2026-10-14T09:00:00+09:00", "2026-10-15T05:00:00+09:00"], "2026-10-13"), "2026-10-15", now)["label"] == "3일째 · 확산 중 ↑"
+    assert lifespan(cand(["2026-10-14T09:00:00+09:00", "2026-10-14T10:00:00+09:00"]), "2026-10-15", now)["label"] == "2일째 · 식는 중 ↓"

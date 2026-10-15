@@ -1,0 +1,14 @@
+# 임시: 새 기능(이야기 수명·신조어 풀이)으로 오늘 피드 다시 발행해 확인 (확인 후 삭제)
+name: publish-now
+on:
+  push:
+    branches: [claude/wizardly-edison-b339ub]
+    paths: [.github/workflows/publish-now.yml]
+permissions:
+  contents: write
+jobs:
+  publish:
+    uses: ./.github/workflows/run.yml
+    with:
+      task: publish
+    secrets: inherit

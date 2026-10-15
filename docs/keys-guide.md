@@ -157,3 +157,19 @@ GitHub 서버가 사이트를 만들고 올리고 잠글 때 쓰는 허가증입
 ---
 
 다 넣었으면 [시작 안내서](start-guide.md)의 2단계 '처음 설정'으로 넘어가세요.
+
+## 10. 아침 요약 메일 (GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
+
+매일 피드가 올라가면 `config/mail_to.txt`에 적힌 주소로 요약 메일을 보냅니다. 보내는 계정은 개인 Gmail입니다.
+
+1. 휴대폰이나 PC에서 https://myaccount.google.com/security 를 엽니다.
+2. **2단계 인증**이 꺼져 있으면 켭니다. 앱 비밀번호를 만들려면 꼭 필요합니다.
+3. https://myaccount.google.com/apppasswords 에서 이름에 `dsbg`를 적고 **만들기**를 누릅니다.
+4. 노란 상자에 나온 16자리(예: `abcd efgh ijkl mnop`)를 복사합니다. 창을 닫으면 다시 볼 수 없습니다.
+5. GitHub 비밀값에 두 개를 넣습니다.
+   - `GMAIL_ADDRESS`: 보내는 Gmail 주소 (예: `내아이디@gmail.com`)
+   - `GMAIL_APP_PASSWORD`: 방금 복사한 16자리
+
+- 받는 사람을 바꾸려면 GitHub에서 `config/mail_to.txt`를 열고 연필(편집) 버튼으로 한 줄에 하나씩 적습니다.
+- 같은 날에는 한 번만 보냅니다. '지금 발행'을 다시 눌러도 두 번 가지 않습니다.
+- 회사 메일은 처음에 스팸함으로 갈 수 있습니다. 첫 메일을 '스팸 아님'으로 표시하거나 보내는 주소를 주소록에 넣어 주세요.

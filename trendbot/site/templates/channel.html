@@ -12,7 +12,7 @@
       <a class="ch-link" href="{{ src.url }}" target="_blank" rel="noopener">원래 게시판 {{ icon('out') }}</a>
     </div>
   </section>
-  <div class="seg" id="tabs">{% for k, label in TABS %}<button class="{{ 'on' if loop.first }}" data-k="{{ k }}">{{ label }} 1위</button>{% endfor %}</div>
+  <div class="pills" id="tabs">{% for k, label in TABS %}<button class="{{ 'on' if loop.first }}" data-k="{{ k }}">{{ label }} 1위</button>{% endfor %}</div>
   {% for k, label in TABS %}
   <ul class="health ch-list {{ 'on' if loop.first }}" data-k="{{ k }}">
     {% for r in rows %}{% set p = r[k] %}
