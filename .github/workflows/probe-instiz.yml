@@ -1,0 +1,17 @@
+# 임시: 인스티즈 대체 경로·원문 캡처 가능 여부 확인 (확인 후 삭제)
+name: probe-instiz
+on:
+  push:
+    branches: [claude/wizardly-edison-b339ub]
+    paths: [.github/workflows/probe-instiz.yml, tools/probe_instiz.py]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13", cache: pip}
+      - run: pip install -r requirements.txt
+      - run: python tools/probe_instiz.py
