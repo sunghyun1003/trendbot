@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block title %}ㄷㅅㅂㄱ · 상태{% endblock %}
 {% macro why(m) -%}
-{%- if '403' in m or '차단' in m or '430' in m -%}사이트가 접속을 막음 (우회 안 함)
+{%- if '서버 바쁨' in m or '503' in m or '502' in m or '504' in m -%}상대 서버가 잠시 바쁨, 다음 수집 때 자동 재시도
+{%- elif '403' in m or '차단' in m or '430' in m or '429' in m -%}사이트가 접속을 막음 (우회 안 함)
 {%- elif 'timed out' in m or 'Timeout' in m or 'reset' in m -%}응답 지연, 다음 수집 때 다시 시도
 {%- elif '하나도' in m -%}화면 구조가 바뀜, 수리 필요
 {%- elif '기록 없음' in m -%}아직 수집 전
@@ -11,9 +12,9 @@
 {% macro rows(list, switch) %}
   <ul class="health">
     {% for s in list %}
-    <li class="{{ 'off' if not s.enabled else ('ok' if s.ok else 'bad') }}" {% if switch %}data-src="{{ s.id }}"{% endif %}>
+    <li class="{{ 'off' if not s.enabled else ('ok' if s.ok else ('warn' if s.warn else 'bad')) }}" {% if switch %}data-src="{{ s.id }}"{% endif %}>
       <span class="dot"></span><b>{{ s.name }}</b>
-      <span class="st">{% if not s.enabled %}꺼짐{% elif s.ok %}<time data-at="{{ s.at }}">{{ (s.at or '')[11:16] }}</time>{% if s.rows is not none %} · {{ s.rows }}건{% endif %}{% else %}{{ why(s.message) }}{% endif %}</span>
+      <span class="st">{% if not s.enabled %}꺼짐{% elif s.ok %}<time data-at="{{ s.at }}">{{ (s.at or '')[11:16] }}</time>{% if s.rows is not none %} · {{ s.rows }}건{% endif %}{% elif s.warn %}잠깐 실패 · <time data-at="{{ s.last_ok }}">{{ (s.last_ok or '')[11:16] }}</time> 정상{% else %}{{ why(s.message) }}{% endif %}</span>
     </li>
     {% endfor %}
   </ul>
@@ -21,7 +22,7 @@
 {% block body %}
 <div class="feed-col single">
   {% set on = sources|selectattr('enabled')|list %}
-  {% set bad = on|rejectattr('ok')|list %}
+  {% set bad = on|rejectattr('ok')|rejectattr('warn')|list %}
   <section class="hero">
     <div class="hero-d">수집 상태 · 최근 26시간</div>
     <div class="hero-n"><b class="{{ 'bad' if bad }}">{{ on|length - bad|length }}/{{ on|length }}</b><span>{{ '모두 정상' if not bad else '정상' }}</span></div>

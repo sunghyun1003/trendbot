@@ -62,7 +62,12 @@ def polite_get(url: str, client: httpx.Client | None = None, check_robots: bool 
         time.sleep(wait)
     _last_hit[host] = time.monotonic()
     r = c.get(url)
-    if r.status_code in (403, 429, 503):
+    if r.status_code in (502, 503, 504):  # 상대 서버가 잠시 바쁨: 20초 쉬고 한 번만 다시
+        time.sleep(20)
+        r = c.get(url)
+        if r.status_code in (502, 503, 504):
+            raise Blocked(f"서버 바쁨 {r.status_code}: {url}")
+    if r.status_code in (403, 429):
         raise Blocked(f"차단 응답 {r.status_code}: {url}")
     r.raise_for_status()
     text = decode(r)

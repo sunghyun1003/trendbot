@@ -91,7 +91,7 @@ def test_fmkorea_via_issuelink_rewrites_to_original_links():
     from trendbot.config import load_config
     src = next(s for s in load_config()["sources"] if s["id"] == "fmkorea")
     posts = parse_list((Path(__file__).parent / "fixtures" / "fmkorea_issuelink.html").read_text(encoding="utf-8"), src)
-    assert len(posts) == 20
+    assert len(posts) == 50  # 화력 3: 50개까지 읽음
     p = posts[0]
     assert p.url == "https://www.fmkorea.com/10441799708"
     assert p.title == "아시안게임 군면제 관련 새로운 이슈.jpg" and p.views == 8419 and p.comments == 33

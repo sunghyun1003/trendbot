@@ -95,8 +95,12 @@ def _health_rows(cfg: dict) -> list[dict]:
 
     def row(sid, name, group, enabled):
         r = h.get(sid, {})
+        # 방금 한 번 실패했어도 6시간 안에 성공한 적이 있으면 '일시 오류'(주황)로, 계속 실패할 때만 빨강
+        recent_ok = bool(r.get("last_ok")) and r["last_ok"] >= (datetime.now().astimezone() - timedelta(hours=6)).isoformat()
         return {"id": sid, "name": name, "group": group, "enabled": enabled, "ok": r.get("ok", False),
-                "rows": r.get("rows"), "at": r.get("at"), "message": r.get("message") or "수집 기록 없음"}
+                "warn": not r.get("ok", False) and recent_ok, "last_ok": r.get("last_ok"),
+                "rows": r.get("rows") if r.get("ok") else r.get("last_rows"), "at": r.get("at"),
+                "message": r.get("message") or "수집 기록 없음"}
 
     rows = [row(s["id"], s["name"], "community", s.get("enabled", True)) for s in cfg["sources"]]
     for sid, sc in cfg["signals"].items():

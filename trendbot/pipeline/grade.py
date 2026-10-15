@@ -49,6 +49,7 @@ def evaluate(story: Story, cfg: dict) -> Candidate | None:
     g = cfg["grading"]
     pods_cfg = cfg["pods"]
     src_pod = {s["id"]: s["pod"] for s in cfg["sources"]}
+    src_power = {s["id"]: s.get("power", 1) for s in cfg["sources"]}
     pods = _pods_of(story, src_pod)
     community = {p for p in pods if not pods_cfg[p].get("platform")}
     genders = {pods_cfg[p]["gender"] for p in community}
@@ -74,17 +75,20 @@ def evaluate(story: Story, cfg: dict) -> Candidate | None:
         grade = "B"
     else:
         posts = story.posts
-        best_views = max([p.data.get("views") or 0 for p in posts] or [0])
-        top_rank = min([p.data.get("best_rank") or 99 for p in posts] or [99])
         yt_long = max([i.data.get("value") or 0 for i in yt if not i.data.get("extra", {}).get("shorts")] or [0])
         yt_shorts = max([i.data.get("value") or 0 for i in yt if i.data.get("extra", {}).get("shorts")] or [0])
-        if (top_rank <= g["m_rank_top"] and best_views >= g["m_min_views"]) or yt_long >= 1_000_000 or yt_shorts >= 3_000_000:
+        # 한 곳 대박: 화력 2 이상 사이트의 1위 글만 (작은 사이트 1위는 '커뮤니티별 1위' 탭에서)
+        big = any(src_power.get(p.source_id, 1) >= 2 and (p.data.get("best_rank") or 99) <= g["m_rank_top"]
+                  and (p.data.get("views") or 0) >= g["m_min_views"] for p in posts)
+        if big or yt_long >= 1_000_000 or yt_shorts >= 3_000_000:
             grade = "M"
     if not grade:
         return None
 
+    # 화력: 이야기가 올라온 사이트들의 화력 합 (디시·더쿠·펨코·인티처럼 큰 곳에 올라올수록 점수 ↑)
+    power = sum(src_power.get(sid, 1) for sid in {p.source_id for p in story.posts})
     score = (12 * min(len(community), 6) + 8 * min(len(pods - community), 2) + 12 * gender_cross
-             + 8 * age_cross + {0: 0, 1: 12, 2: 18}[s_level])
+             + 8 * age_cross + {0: 0, 1: 12, 2: 18}[s_level] + 3 * min(power, 12))
     badges = [GRADE_LABEL[grade]]
     if gender_cross:
         badges.append("남녀공통")

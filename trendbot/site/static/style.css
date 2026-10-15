@@ -523,3 +523,5 @@ svg { display: block; flex: none; }
 .health .bad .st { color: var(--rec); }
 .health li .sw { margin-left: 12px; flex: none; }
 .health .off b { color: var(--t3); }
+.health .warn .dot { background: var(--orange); box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 18%, transparent); }
+.health .warn .st { color: #c77d00; }

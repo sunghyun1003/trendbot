@@ -116,3 +116,16 @@ def test_unrelated_posts_are_not_chained():
     assert ["u1", "u2"] in together
     assert all("u3" not in g and "u4" not in g for g in together)
     assert all(i.url not in ("u5", "u6") for s in stories for i in s.items)
+
+
+def test_source_power_raises_score():
+    """같은 퍼짐이라도 화력 큰 사이트(디시·더쿠)에 올라온 이야기가 작은 사이트보다 점수가 높음."""
+    from trendbot.pipeline import cluster as cl
+    from trendbot.pipeline.grade import evaluate
+    cfg = load_config()
+    def story(*sids):
+        return cl.Story(cl.build_items([{"source_id": s, "title": "구름빵 크림 품절 대란", "url": f"x{i}"}
+                                        for i, s in enumerate(sids)], [], {}, []))
+    big = evaluate(story("dcbest", "theqoo", "ruliweb"), cfg)            # 남·여·취미 3곳, 화력 3+3+2
+    small = evaluate(story("humoruniv", "cook82", "ppomppu_deal"), cfg)  # 남·여·30대 3곳, 화력 2+1+1
+    assert big and small and big.score > small.score

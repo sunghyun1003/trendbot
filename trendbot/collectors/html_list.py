@@ -12,6 +12,7 @@ from trendbot.collectors.numbers import parse_count
 from trendbot.models import Post
 
 MAX_ROWS = 20
+ROWS_BY_POWER = {3: 50, 2: 30, 1: 20}  # 화력이 센 사이트는 목록을 더 깊이 읽음 (한 화면에 있는 만큼만)
 AD_PATTERNS = [r"^AD\s", r"^\[?광고\]?", r"^\[?공지\]?"]
 
 
@@ -43,6 +44,7 @@ def _select(row: Tag, spec: str) -> str | None:
 def parse_list(html: str, source: dict) -> list[Post]:
     soup = BeautifulSoup(html, "html.parser")
     fields = source["fields"]
+    limit = source.get("max_rows") or ROWS_BY_POWER.get(source.get("power", 1), MAX_ROWS)
     posts: list[Post] = []
     seen_urls: set[str] = set()
     for row in soup.select(source["row"]):
@@ -72,7 +74,7 @@ def parse_list(html: str, source: dict) -> list[Post]:
                 views=nums["views"], likes=nums["likes"], comments=nums["comments"], posted_at=posted,
             )
         )
-        if len(posts) >= MAX_ROWS:
+        if len(posts) >= limit:
             break
     return posts
 

@@ -41,8 +41,12 @@ routine_keywords: [날씨, 로또, 환율, 코스피, 코스닥, 미세먼지, �
 aliases:
   흑백요리사: [흑요, 흑백 요리사]
 
+# power(화력): 사이트 규모 + 실제 반응(2026-10-14 하루, 글당 댓글 중앙값)으로 정함
+#   3 = 디시 140·더쿠 414·인스티즈 82·펨코(국내 최대급)  2 = 루리웹·뽐뿌 HOT·웃대·보배·인벤  1 = 뽐뿌 핫딜·82쿡
+#   많이 읽기: 화력 3은 목록 50개, 2는 30개, 1은 20개까지
 sources:
   - id: dcbest
+    power: 3              # 화력(3 높음~1 낮음): 많이 읽고, 판정 점수에 더 반영
     name: 디시 실시간 베스트
     pod: P1
     champion: true
@@ -61,6 +65,7 @@ sources:
     detail:
       body: "div.write_div"
   - id: humoruniv
+    power: 2              # 화력(3 높음~1 낮음): 많이 읽고, 판정 점수에 더 반영
     name: 웃긴대학 오늘의 베스트
     pod: P1
     champion: true
@@ -77,6 +82,7 @@ sources:
     detail:
       body: "#wrap_copy"
   - id: inven
+    power: 2              # 화력(3 높음~1 낮음): 많이 읽고, 판정 점수에 더 반영
     name: 인벤 오픈이슈갤러리
     pod: P1                 # 게임·밈 커뮤니티, 남 10~20대
     champion: true
@@ -94,6 +100,7 @@ sources:
     detail:
       body: "#powerbbsContent, div.articleContent"
   - id: fmkorea
+    power: 3              # 화력(3 높음~1 낮음): 많이 읽고, 판정 점수에 더 반영
     name: 에펨코리아
     pod: P1                 # 남 10~30대, 국내 최대 커뮤니티 중 하나
     champion: true
@@ -114,6 +121,7 @@ sources:
       comments: "span.title small"
 
   - id: ruliweb
+    power: 2              # 화력(3 높음~1 낮음): 많이 읽고, 판정 점수에 더 반영
     name: 루리웹 베스트
     pod: P2
     champion: true
@@ -133,6 +141,7 @@ sources:
       comment_text: "span.text"
       comment_likes: "button.btn_like span.num"
   - id: ppomppu_hot
+    power: 2              # 화력(3 높음~1 낮음): 많이 읽고, 판정 점수에 더 반영
     name: 뽐뿌 HOT
     pod: P3
     champion: true
@@ -153,6 +162,7 @@ sources:
       comment_strip: ["b", "img"]
       comment_trailing_votes: true
   - id: ppomppu_deal
+    power: 1              # 화력(3 높음~1 낮음): 많이 읽고, 판정 점수에 더 반영
     name: 뽐뿌 핫딜
     pod: P3
     champion: true
@@ -171,6 +181,7 @@ sources:
     detail:
       body: "td.han, td.board-contents"
   - id: bobaedream
+    power: 2              # 화력(3 높음~1 낮음): 많이 읽고, 판정 점수에 더 반영
     name: 보배드림 베스트
     pod: P3
     champion: true
@@ -188,6 +199,7 @@ sources:
     detail:
       body: "div.bodyCont"
   - id: instiz
+    power: 3              # 화력(3 높음~1 낮음): 많이 읽고, 판정 점수에 더 반영
     name: 인스티즈 이슈
     pod: P4
     champion: true
@@ -205,6 +217,7 @@ sources:
     detail:
       body: "#memo_content_1"   # 댓글은 시간순이라 베스트가 아님 → 가져오지 않음
   - id: theqoo
+    power: 3              # 화력(3 높음~1 낮음): 많이 읽고, 판정 점수에 더 반영
     name: 더쿠 HOT
     pod: P5
     champion: true
@@ -220,6 +233,7 @@ sources:
     detail:
       body: "article .xe_content, div.rd_body"
   - id: cook82
+    power: 1              # 화력(3 높음~1 낮음): 많이 읽고, 판정 점수에 더 반영
     name: 82쿡 자유게시판
     pod: P6
     champion: true

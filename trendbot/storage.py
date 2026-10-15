@@ -126,7 +126,10 @@ def source_health(db: sqlite3.Connection, since: str) -> dict[str, dict]:
     ).fetchall()
     health: dict[str, dict] = {}
     for r in rows:
-        health[r["source_id"]] = {"ok": bool(r["ok"]), "rows": r["rows"], "message": r["message"], "at": r["taken_at"]}
+        prev = health.get(r["source_id"], {})
+        last_ok = r["taken_at"] if r["ok"] else prev.get("last_ok")
+        health[r["source_id"]] = {"ok": bool(r["ok"]), "rows": r["rows"], "message": r["message"], "at": r["taken_at"],
+                                  "last_ok": last_ok, "last_rows": r["rows"] if r["ok"] else prev.get("last_rows")}
     return health
 
 
