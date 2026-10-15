@@ -1,0 +1,14 @@
+# 임시: 인스티즈(이슈링크 경유) 실제 수집 확인 + 탭 이름 반영 (확인 후 삭제)
+name: verify-collect
+on:
+  push:
+    branches: [claude/wizardly-edison-b339ub]
+    paths: [.github/workflows/verify-collect.yml]
+permissions:
+  contents: write
+jobs:
+  collect:
+    uses: ./.github/workflows/run.yml
+    with:
+      task: collect
+    secrets: inherit

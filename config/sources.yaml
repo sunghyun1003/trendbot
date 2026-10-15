@@ -204,18 +204,22 @@ sources:
     pod: P4
     champion: true
     enabled: true
-    verified: true
-    url: https://www.instiz.net/pt?srt=3&srd=1
-    row: "tr#detour"
-    strip: ["span.cmt3", "i"]
+    verified: true          # 2026-10-15 이슈링크 경유로 확인 (100개)
+    # 인스티즈가 2026-10-15부터 모든 자동 접속에 '사람 확인' 보안 화면을 띄움(robots.txt까지).
+    # 우회하지 않고, 펨코와 같이 공개 모아보기 사이트 '이슈링크'(robots.txt 허용)의 인스티즈 24시간 조회순 목록을 읽음.
+    # (이전에 인스티즈 robots.txt가 이 게시판 수집을 허용하는 것을 확인함)
+    # 원문 본문·캡처는 같은 보안 화면 때문에 가져오지 않고 '원문에서 보기' 링크만 둠.
+    url: https://www.issuelink.co.kr/community/listview/instiz/24/adj/_self/blank/blank/blank
+    row: "tr"
+    strip: ["span.title small"]
+    original: false
+    link_rewrite: {pattern: "^https://www\\.issuelink\\.co\\.kr/community/go/instiz/(\\d+).*$", to: "https://www.instiz.net/pt/\\1"}
     fields:
-      title: "td.listsubject a"
-      link: "td.listsubject a@href"
-      views: "td.listno!1"
-      likes: "td.listno!2"
-      comments: "span.cmt3"
-    detail:
-      body: "#memo_content_1"   # 댓글은 시간순이라 베스트가 아님 → 가져오지 않음
+      title: "span.title a"
+      link: "span.title a@href"
+      views: "span.hit"
+      comments: "span.title small"
+
   - id: theqoo
     power: 3              # 화력(3 높음~1 낮음): 많이 읽고, 판정 점수에 더 반영
     name: 더쿠 HOT
