@@ -98,7 +98,7 @@ def sample_editions() -> list[dict]:
         "excluded": [{"id": "x1", "headline": "[견본] 특정 브랜드 체험단 후기 다수", "reason": "광고"}],
         "champions": champs, "avg28": 9, "mood": "평소 수준",
         "health": {"total": 12, "ok": 11, "broken": [{"name": "에펨코리아 포텐", "message": "봇 차단"}]},
-        "ai": {"used": True, "model": "claude-opus-5-5", "note": None}, "sample": True,
+        "ai": {"used": True, "model": "claude-sonnet-5-5", "note": None}, "sample": True,
     }
     today["channel_tops"] = {c["source_id"]: {"views": c["post"], "comments": c["post"], "likes": c["post"]}
                              for c in champs if c.get("post") and c["source_id"] != "youtube"}

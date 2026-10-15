@@ -51,8 +51,8 @@ def check_live_keys(env=os.environ) -> list[Check]:
     if env.get("ANTHROPIC_API_KEY"):
         try:
             import anthropic
-            anthropic.Anthropic().models.retrieve("claude-opus-5-5")
-            out.append(Check("Anthropic 연결", True, "Opus 5.5 사용 가능"))
+            anthropic.Anthropic().models.retrieve("claude-sonnet-5-5")
+            out.append(Check("Anthropic 연결", True, "Sonnet 5.5 사용 가능"))
         except Exception as e:
             out.append(Check("Anthropic 연결", False, e.__class__.__name__,
                              "키가 맞는지, 크레딧이 충전돼 있는지 console.anthropic.com에서 확인"))
