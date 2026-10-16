@@ -544,3 +544,14 @@ svg { display: block; flex: none; }
 [hidden] { display: none !important; }
 /* 필터 칩: 넓은 화면은 여러 줄로, 좁은 화면은 옆으로 밀기 */
 @media (min-width: 760px) { .pills { flex-wrap: wrap; overflow: visible; margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; } }
+
+/* 제목만 있는 글 보강: 같은 이야기의 다른 사이트 원문 / 관련 기사 */
+.alt, .newsctx { margin: 14px 0; padding: 14px; border-radius: 14px; background: color-mix(in srgb, var(--blue) 6%, transparent); }
+.alt-k { font-size: 12px; font-weight: 700; color: var(--blue); margin-bottom: 6px; }
+.alt-t { font-size: 16px; margin: 0 0 8px; }
+.alt-go { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--t2); }
+.alt-go svg { width: 14px; height: 14px; }
+.nc-sum { margin: 0 0 8px; font-size: 15px; line-height: 1.55; }
+.newsctx ul { margin: 0; padding-left: 16px; font-size: 13px; line-height: 1.7; }
+.newsctx a { color: var(--t1); }
+.newsctx span { color: var(--t3); }

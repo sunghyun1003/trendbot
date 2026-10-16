@@ -97,12 +97,12 @@
   <section class="tab" id="tab-champ" hidden>
   <ul class="cfeed">
     {% for ch in champs %}
-    {% set o = ch.post.original or {} %}
+    {% set o = ch.post.original or ((ch.post.alt or {}).original) or {} %}
     {% set th = (root ~ o.saved[0].file) if o.saved else ((root ~ o.capture[0]) if o.capture else None) %}
     <li><a href="{{ root }}{{ ch.href }}">
       <span class="cf-th">{% if th %}<img src="{{ th }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}<i>{{ ch.name|short }}</i></span>
       <span class="cf-b">
-        <span class="cf-n">{{ ch.name }}{% if ch.strength in ('강함','역대급') %}<em class="cf-s {{ 'max' if ch.strength == '역대급' }}">{{ ch.strength }}</em>{% endif %}{% if ch.in_card %}<em class="cf-c">꼭 알아야 할 것 {{ ch.in_card }}번</em>{% endif %}</span>
+        <span class="cf-n">{{ ch.name }}{% if ch.strength in ('강함','역대급') %}<em class="cf-s {{ 'max' if ch.strength == '역대급' }}">{{ ch.strength }}</em>{% endif %}{% if ch.in_card %}<em class="cf-c">꼭 알아야 할 것 {{ ch.in_card }}번</em>{% elif ch.post.news_ctx %}<em class="cf-c">관련 기사</em>{% endif %}</span>
         <span class="cf-t">{{ ch.post.title }}</span>
         <span class="cf-m">{% if ch.post.views %}{{ icon('eye') }}{{ ch.post.views|num }}{% endif %}{% if ch.post.likes %}{{ icon('thumb') }}{{ ch.post.likes|num }}{% endif %}{% if ch.post.comments %}{{ icon('chat') }}{{ ch.post.comments|num }}{% endif %}</span>
       </span>

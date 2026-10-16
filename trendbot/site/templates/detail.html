@@ -3,6 +3,17 @@
 {% block title %}{{ posts[0].title if posts else (c.headline if c else '') }} · ㄷㅅㅂㄱ{% endblock %}
 {% set GL = {'A': '전국 확산', 'B': '확산 중', 'M': '한 곳 대박'} %}
 {% set NOTE = {'login': '로그인해야 볼 수 있는 글이에요', 'blocked': '사이트가 미리보기를 막았어요', 'error': '원문을 불러오지 못했어요', 'empty': '본문을 찾지 못했어요'} %}
+{% macro orig_body(o) %}
+        {% if o.capture %}
+          <div class="o-cap"><span class="cap-k">원문 캡처</span>{% for f in o.capture %}<img src="{{ root }}{{ f }}" alt="원문 화면 {{ loop.index }}" loading="lazy">{% endfor %}</div>
+          {% if o.body %}<details class="o-txt"><summary>글자로 보기</summary><div class="o-body">{{ o.body }}</div></details>{% endif %}
+        {% else %}
+          {% if o.body %}<div class="o-body">{{ o.body }}</div>{% if o.truncated %}<p class="o-cut">… 이어지는 내용은 원문에서</p>{% endif %}{% endif %}
+          {% if o.saved %}{% for m in o.saved %}<img class="o-img" src="{{ root }}{{ m.file }}" alt="" loading="lazy">{% endfor %}
+          {% else %}{% for img in o.images %}<img class="o-img" src="{{ img }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">{% endfor %}{% endif %}
+          {% if o.has_media %}<p class="o-cut">영상·움짤이 있는 글이에요. 원문에서 재생해 주세요.</p>{% endif %}
+        {% endif %}
+{% endmacro %}
 {% block topleft %}<a class="back" href="{{ back }}" aria-label="뒤로">{{ icon('back') }}</a><span class="top-t">{{ GL[c.grade] if c else ch_name }}</span>{% endblock %}
 {% block body %}
 <div class="detail">
@@ -34,16 +45,21 @@
       {% if c.terms %}<dl class="terms">{% for t in c.terms %}<div><dt>{{ t.term }}</dt><dd>{{ t.meaning }}{% if not t.sure %} <em>추정</em>{% endif %}</dd></div>{% endfor %}</dl>{% endif %}
       {% endif %}
 
-      {% if o.status == 'ok' %}
-        {% if o.capture %}
-          <div class="o-cap"><span class="cap-k">원문 캡처</span>{% for f in o.capture %}<img src="{{ root }}{{ f }}" alt="원문 화면 {{ loop.index }}" loading="lazy">{% endfor %}</div>
-          {% if o.body %}<details class="o-txt"><summary>글자로 보기</summary><div class="o-body">{{ o.body }}</div></details>{% endif %}
-        {% else %}
-          {% if o.body %}<div class="o-body">{{ o.body }}</div>{% if o.truncated %}<p class="o-cut">… 이어지는 내용은 원문에서</p>{% endif %}{% endif %}
-          {% if o.saved %}{% for m in o.saved %}<img class="o-img" src="{{ root }}{{ m.file }}" alt="" loading="lazy">{% endfor %}
-          {% else %}{% for img in o.images %}<img class="o-img" src="{{ img }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">{% endfor %}{% endif %}
-          {% if o.has_media %}<p class="o-cut">영상·움짤이 있는 글이에요. 원문에서 재생해 주세요.</p>{% endif %}
-        {% endif %}
+      {% if o.status == 'ok' and (o.body or o.images or o.capture) %}
+        {{ orig_body(o) }}
+      {% elif p.alt %}
+        <section class="alt">
+          <div class="alt-k">같은 이야기 · {{ p.alt.source_name }} 원문</div>
+          <h2 class="alt-t">{{ p.alt.title }}</h2>
+          {{ orig_body(p.alt.original or {}) }}
+          <a class="alt-go" href="{{ p.alt.url }}" target="_blank" rel="noopener noreferrer">{{ p.alt.source_name }}에서 보기 {{ icon('out') }}</a>
+        </section>
+      {% elif p.news_ctx %}
+        <section class="newsctx">
+          <div class="alt-k">관련 기사로 본 내용</div>
+          <p class="nc-sum">{{ p.news_ctx.summary }}</p>
+          <ul>{% for a in p.news_ctx.articles %}<li><a href="{{ a.url }}" target="_blank" rel="noopener noreferrer">{{ a.title }}{% if a.source %} <span>· {{ a.source }}</span>{% endif %}</a></li>{% endfor %}</ul>
+        </section>
       {% else %}
         <div class="o-miss">{{ icon('out') }}<b>{{ NOTE.get(o.status, '원문은 원래 사이트에서 볼 수 있어요') }}</b></div>
       {% endif %}

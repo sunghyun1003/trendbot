@@ -70,7 +70,9 @@ def build(editions: list[dict], health: list[dict], out: Path = OUT) -> Path:
     media_src = DATA_DIR / "media"
     env = _env()
     newest = Date.fromisoformat(editions[0]["date"]) if editions else None
+    no_champ = {s["id"] for s in load_config()["sources"] if s.get("champion") is False}  # 신호 전용(82쿡)은 지난 판에서도 숨김
     for e in editions:
+        e["champions"] = [ch for ch in e["champions"] if ch["source_id"] not in no_champ]
         e["date_label"] = _date_label(e["date"])
         old = newest and (newest - Date.fromisoformat(e["date"])).days > ORIGINAL_KEEP_DAYS
         for c in e["cards"]:

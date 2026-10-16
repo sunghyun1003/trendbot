@@ -43,7 +43,8 @@ def test_spread_gate_and_champions(tmp_path):
     assert c["spread"]["sites"] == 4
     assert "구글 트렌드" in c["evidence_line"]
     champs = {ch["source_id"]: ch for ch in ed["champions"]}
-    assert champs["cook82"]["post"]["title"].startswith("김장")
+    assert "cook82" not in champs                      # 82쿡은 신호 전용 (로그인 전용 글이라 1위 탭에 안 보임)
+    assert champs["bobaedream"]["post"]["title"].startswith("새 노트북")
     assert champs["dcbest"]["in_card"] == 1
 
 
@@ -57,7 +58,7 @@ def test_no_repeat_next_day(tmp_path):
     day2 = build_edition(db, cfg, date="2026-10-14", use_ai=False, fetch_context=False)
     assert day1["cards"] and not day2["cards"]
     # 이미 보여 준 채널 1위도 다시 나오지 않음
-    assert all(ch["post"] is None for ch in day2["champions"] if ch["source_id"] == "cook82")
+    assert all(ch["post"] is None for ch in day2["champions"] if ch["source_id"] == "bobaedream")
 
 
 def test_card_cap(tmp_path):

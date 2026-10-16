@@ -200,9 +200,18 @@ def build_edition(db: sqlite3.Connection, cfg: dict, date: str | None = None, us
             ch["post"] = {**ch["post"], "source_name": srcs[ch["source_id"]]["name"]}
     if fetch_context:
         attach_originals([ch["post"] for ch in champs if ch["post"] and not ch.get("in_card")], cfg)
+        # 제목만 있는 글(펨코·인티 등) 보강: 같은 이야기의 다른 사이트 원문, 없으면 관련 기사 2줄 요약
+        from trendbot.pipeline import context
+        try:
+            context.enrich([ch["post"] for ch in champs if ch["post"] and not ch.get("in_card")]
+                           + [c["posts"][0] for c in final if c["posts"]], stories, signals, cfg, use_ai)
+        except Exception as ex:  # 보강은 덤: 실패해도 발행은 계속
+            print(f"제목만 있는 글 보강 실패: {ex.__class__.__name__}")
     if fetch_context and fetch_media:  # 최종 발행되는 글만 이미지 전체 저장·캡처
+        alts = [p["alt"] for p in [ch["post"] for ch in champs if ch["post"]] + [c["posts"][0] for c in final if c["posts"]]
+                if p.get("alt")]
         attach_media([p for c in final for p in c["posts"][:2]]
-                     + [ch["post"] for ch in champs if ch["post"] and not ch.get("in_card")], cfg, date)
+                     + [ch["post"] for ch in champs if ch["post"] and not ch.get("in_card")] + alts, cfg, date)
 
     # 유튜브 1위 (검색 발견 기준)
     yt = [s for s in signals if s["kind"] == "youtube"]

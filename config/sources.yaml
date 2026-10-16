@@ -240,7 +240,7 @@ sources:
     power: 1              # 화력(3 높음~1 낮음): 많이 읽고, 판정 점수에 더 반영
     name: 82쿡 자유게시판
     pod: P6
-    champion: true
+    champion: false         # 신호 전용: 확산 계산에만 쓰고 '커뮤니티별 1위'에는 안 보임 (글이 로그인 전용)
     enabled: true
     verified: false
     original: false         # 82쿡 글 본문은 로그인해야 보임 → 원문 시도하지 않음 (제목·수치·링크만)
