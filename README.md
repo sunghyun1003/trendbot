@@ -13,7 +13,7 @@
 ```
 Cloudflare 정시 실행기 ── 06:30 발행 / 2시간마다 수집 시작 ──┐
                                                                ▼
-GitHub 서버 (무료): 커뮤니티 9곳·구글 트렌드·뉴스·다음 연예 랭킹·X 트렌드·유튜브 수집
+GitHub 서버 (무료): 커뮤니티 9곳·구글 트렌드·다음 연예 랭킹·X 트렌드·유튜브 수집
                    → DB(data 브랜치) → 판정 → AI 편집 → 사이트 ──→ Cloudflare Pages + Access(팀원 로그인)
                                                                           ↑ 회사 PC·휴대폰은 브라우저로 열람
 사이트 '상태' 탭: 지금 수집·발행, 사이트 켜기·끄기, 키 ✓/✗, 인스타 감시 계정
@@ -26,7 +26,7 @@ GitHub 서버 (무료): 커뮤니티 9곳·구글 트렌드·뉴스·다음 연�
 | `.github/workflows/setup.yml` | '처음 설정': Cloudflare 사이트·저장소·로그인 잠금 자동 생성 → 첫 발행 |
 | `config/sources.yaml` | 게시판 켜기/끄기, 독자층 묶음(포드), 채널 1위 목록, 판정 기준 |
 | `config/editor_rules.md` | AI 편집자 하우스 룰 (한국어) |
-| `trendbot/collectors/` | 게시판(설정 기반 범용 수집기), 구글 트렌드·뉴스, 다음 연예, X 트렌드, 유튜브, 인스타, 원문·사진 |
+| `trendbot/collectors/` | 게시판(설정 기반 범용 수집기), 구글 트렌드, 다음 연예, X 트렌드, 유튜브, 인스타, 원문·사진 |
 | `trendbot/pipeline/` | `cluster.py`(이야기 묶기), `grade.py`(등급·중복·채널 1위), `editor.py`(AI), `edition.py`(하루치 판 조립) |
 | `trendbot/site/` | 정적 사이트 생성기와 화면 |
 | `trendbot/cloud_setup.py`, `cloudflare.py` | 처음 설정, Cloudflare API |
