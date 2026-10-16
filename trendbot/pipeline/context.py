@@ -90,13 +90,13 @@ def enrich(posts: list[dict], stories: list[cl.Story], signals: list[dict], cfg:
         news = local_news(p["title"], signals) or search(p["title"])
         if news:
             ask.append((p, news))
-    if not ask:
-        return
-    results = summarize([(p["title"], news) for p, news in ask]) if use_ai else {}
+    results = summarize([(p["title"], news) for p, news in ask]) if use_ai and ask else {}
     for i, (p, news) in enumerate(ask):
         r = results.get(i)
         if r and r.get("related"):
             p["news_ctx"] = {"summary": r["summary"], "articles": news[:3]}
+    print(f"제목만 있는 글 보강: 대상 {len(todo)} · 다른 사이트 원문 {sum(1 for p in todo if p.get('alt'))}"
+          f" · 기사 후보 {len(ask)} · 관련 기사 요약 {sum(1 for p in todo if p.get('news_ctx'))}")
 
 
 SCHEMA = {
