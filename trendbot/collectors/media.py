@@ -25,7 +25,8 @@ from trendbot.config import DATA_DIR
 MEDIA_DIR = DATA_DIR / "media"
 MAX_SIDE = 1080
 MIN_BYTES = 1024          # 이보다 작으면 아이콘·자리표시로 보고 버림
-MAX_IMAGES = 8
+MAX_IMAGES = 20
+MAX_TALL = 12000           # 이보다 긴 이미지(세로 만화·캡처 모음)는 여러 장으로 나눔
 CAPTURE_WIDTH = 430       # 모바일 화면 너비로 캡처
 CAPTURE_TILE = 2400       # 세로로 이 높이마다 나눠 저장
 KEEP_DAYS = 30
@@ -35,7 +36,8 @@ def _name(src: str) -> str:
     return hashlib.sha1(src.encode()).hexdigest()[:16]
 
 
-def to_webp(data: bytes, max_side: int = MAX_SIDE) -> bytes | None:
+def to_webp_parts(data: bytes, max_side: int = MAX_SIDE) -> list[bytes]:
+    """너비 기준으로 줄여 webp로. 세로로 아주 긴 이미지는 잘게 나눠 여러 장으로 (작게 찌그러지지 않게)."""
     from PIL import Image, ImageOps
 
     try:
@@ -43,13 +45,23 @@ def to_webp(data: bytes, max_side: int = MAX_SIDE) -> bytes | None:
         im.seek(0)  # 움짤은 첫 장면만 (움직임은 원문 캡처·링크로)
         im = ImageOps.exif_transpose(im.convert("RGB"))
     except Exception:
-        return None
+        return []
     if min(im.size) < 40:
-        return None
-    im.thumbnail((max_side, max_side * 4))
-    out = io.BytesIO()
-    im.save(out, "WEBP", quality=80, method=4)
-    return out.getvalue()
+        return []
+    if im.width > max_side:
+        im = im.resize((max_side, round(im.height * max_side / im.width)))
+    parts = []
+    for top in range(0, im.height, MAX_TALL):
+        out = io.BytesIO()
+        im.crop((0, top, im.width, min(im.height, top + MAX_TALL))).save(out, "WEBP", quality=80, method=4)
+        parts.append(out.getvalue())
+    return parts
+
+
+def to_webp(data: bytes, max_side: int = MAX_SIDE) -> bytes | None:
+    """한 장으로 (AI에게 보낼 때 등). 긴 이미지는 윗부분만."""
+    parts = to_webp_parts(data, max_side)
+    return parts[0] if parts else None
 
 
 def download_images(srcs: list[str], page_url: str, day: str, client: httpx.Client | None = None) -> list[dict]:
@@ -61,19 +73,25 @@ def download_images(srcs: list[str], page_url: str, day: str, client: httpx.Clie
     saved = []
     for src in srcs[:MAX_IMAGES]:
         path = folder / f"{_name(src)}.webp"
+        extra = sorted(folder.glob(f"{_name(src)}-*.webp"))
         if not path.exists():
             try:
                 r = c.get(src, headers={"User-Agent": USER_AGENT, "Referer": page_url or origin,
                                         "Accept": "image/avif,image/webp,image/*,*/*;q=0.8"})
                 if r.status_code != 200 or len(r.content) < MIN_BYTES or not r.headers.get("content-type", "image").startswith("image"):
                     continue
-                webp = to_webp(r.content)
-                if not webp:
+                parts = to_webp_parts(r.content)
+                if not parts:
                     continue
-                path.write_bytes(webp)
+                path.write_bytes(parts[0])
+                extra = []
+                for i, part in enumerate(parts[1:], 1):
+                    (folder / f"{_name(src)}-{i}.webp").write_bytes(part)
+                    extra.append(folder / f"{_name(src)}-{i}.webp")
             except httpx.HTTPError:
                 continue
         saved.append({"file": f"media/{day}/{path.name}", "src": src})
+        saved += [{"file": f"media/{day}/{p.name}", "src": src} for p in extra]
     return saved
 
 
@@ -90,7 +108,7 @@ def split_tiles(png: bytes, day: str, key: str, tile: int = CAPTURE_TILE) -> lis
         name = f"cap-{key}-{i}.webp"
         part.save(folder / name, "WEBP", quality=78, method=4)
         files.append(f"media/{day}/{name}")
-        if i >= 5:  # 최대 6장(약 14,000px)
+        if i >= 11:  # 최대 12장 (긴 글도 끝까지)
             break
     return files
 
@@ -143,7 +161,14 @@ def capture_body(url: str, selector: str | None, day: str) -> list[str]:
                 # 지연 로딩 이미지가 뜨도록 끝까지 천천히 내림
                 page.evaluate("""async () => { for (let y = 0; y < document.body.scrollHeight; y += 600) {
                     window.scrollTo(0, y); await new Promise(r => setTimeout(r, 150)); } window.scrollTo(0, 0); }""")
-                page.wait_for_timeout(800)
+                # 늦게 뜨는 이미지(lazy)가 빈 칸으로 찍히지 않게: 진짜 주소를 넣고, 다 뜰 때까지 최대 6초 기다림
+                page.evaluate("""async () => {
+                    document.querySelectorAll('img').forEach(i => { const s = i.dataset.src || i.dataset.original || i.dataset.lazySrc;
+                      if (s && !i.src.includes(s)) i.src = s; i.loading = 'eager'; });
+                    const t0 = Date.now();
+                    while (Date.now() - t0 < 6000 && [...document.images].some(i => !i.complete)) await new Promise(r => setTimeout(r, 200));
+                }""")
+                page.wait_for_timeout(500)
                 el = page.query_selector(selector)
                 if el and (el.bounding_box() or {}).get("height", 0) > 20:
                     # 본문 사진이 하나도 안 떴으면 깨진 아이콘만 찍히므로 캡처하지 않음

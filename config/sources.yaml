@@ -243,6 +243,7 @@ sources:
     champion: true
     enabled: true
     verified: false
+    original: false         # 82쿡 글 본문은 로그인해야 보임 → 원문 시도하지 않음 (제목·수치·링크만)
     url: https://www.82cook.com/entiz/enti.php?bn=15
     row: "#bbs table tbody tr:not(.noticeList)"
     fields:

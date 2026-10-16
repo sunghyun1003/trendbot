@@ -18,7 +18,7 @@ from trendbot.collectors.http import Blocked, polite_get
 from trendbot.collectors.numbers import parse_count
 
 MAX_BODY = 4000
-MAX_IMAGES = 8
+MAX_IMAGES = 20
 MAX_COMMENTS = 5
 # 진짜 이미지 주소가 들어 있는 속성 (지연 로딩·원본 주소 우선)
 IMG_ATTRS = ("img_file_url", "data-original", "data-src", "data-lazy-src", "src")

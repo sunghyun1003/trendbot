@@ -110,7 +110,9 @@ def _card(c: Candidate, subs: list[Candidate], cfg: dict, fetch_context: bool) -
         "source_id": p.source_id, "source_name": srcs[p.source_id]["name"], "title": p.title, "url": p.url,
         "views": p.data.get("views"), "likes": p.data.get("likes"), "comments": p.data.get("comments"),
         "rank": p.data.get("best_rank"),
-    } for p in sorted(c.story.posts, key=lambda i: (i.data.get("best_rank") or 99))]
+    } for p in sorted(c.story.posts, key=lambda i: (
+        # 대표 글은 원문 내용(본문·이미지)을 가져올 수 있는 사이트 글을 먼저 (펨코·인티·82쿡처럼 제목만 되는 곳은 뒤로)
+        srcs[i.source_id].get("original") is False, i.data.get("best_rank") or 99))]
     videos = [{"title": i.title, "url": i.url, "views": i.data.get("value"),
                "channel": i.data.get("extra", {}).get("channel"), "shorts": i.data.get("extra", {}).get("shorts")}
               for i in c.story.items if i.kind == "youtube"]
