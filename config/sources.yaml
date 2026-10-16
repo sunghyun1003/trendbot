@@ -258,7 +258,8 @@ signals:
     enabled: true
     url: https://trends.google.com/trending/rss?geo=KR
   google_news:
-    enabled: true
+    enabled: false            # 2026-10-16 중단: news.google.com robots.txt가 RSS 수집을 금지(모든 봇, AI 봇은 전체 금지)
+    purge_stored: true        # 그동안 모은 기록도 지움
     url: https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko
   youtube:
     enabled: true             # YOUTUBE_API_KEY 가 있을 때만 동작

@@ -39,6 +39,10 @@ def _load_env() -> None:
 def cmd_snapshot(cfg: dict) -> int:
     db = storage.connect()
     failures = 0
+    for kind, sc in (cfg.get("signals") or {}).items():  # 중단한 신호의 지난 기록 정리 (robots.txt 금지가 확인된 곳)
+        if not sc.get("enabled") and sc.get("purge_stored"):
+            db.execute("DELETE FROM signals WHERE kind=?", (kind,))
+            db.commit()
     for src in cfg["sources"]:
         if not src.get("enabled", True):
             continue

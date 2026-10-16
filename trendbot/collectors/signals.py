@@ -25,6 +25,11 @@ HT = "{https://trends.google.com/trending/rss}"
 
 
 def _get(url: str, params: dict | None = None) -> httpx.Response:
+    """공식 API(googleapis.com)가 아니면 robots.txt를 먼저 확인 (허용 안 하면 가져오지 않음)."""
+    from urllib.parse import urlparse
+    from trendbot.collectors.http import Blocked, robots_allows
+    if not urlparse(url).netloc.endswith("googleapis.com") and robots_allows(url) is False:
+        raise Blocked(f"robots.txt가 수집을 허용하지 않음: {url}")
     r = httpx.get(url, params=params, headers={"User-Agent": USER_AGENT}, timeout=20, follow_redirects=True)
     r.raise_for_status()
     return r

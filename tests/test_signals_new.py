@@ -70,3 +70,12 @@ def test_instagram_spikes_and_watchlist(tmp_path):
         {"like_count": 800, "comments_count": 0, "timestamp": "2026-10-05T03:00:00+0000"}]  # 오래된 건 제외
     out = instagram.spikes("a_mag", media, now)
     assert len(out) == 1 and out[0].title == "신상 밈" and out[0].extra["ratio"] == 9.5
+
+
+def test_non_api_fetch_respects_robots(monkeypatch):
+    """공식 API가 아닌 주소는 robots.txt가 막으면 가져오지 않음 (구글 뉴스 RSS 사례)."""
+    import pytest
+    from trendbot.collectors import http, signals
+    monkeypatch.setattr(http, "robots_allows", lambda url, client=None: False)
+    with pytest.raises(http.Blocked):
+        signals._get("https://news.google.com/rss?hl=ko")
