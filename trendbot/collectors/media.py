@@ -36,9 +36,15 @@ def _name(src: str) -> str:
     return hashlib.sha1(src.encode()).hexdigest()[:16]
 
 
+def _allow_big_images() -> None:
+    from PIL import Image
+    Image.MAX_IMAGE_PIXELS = 300_000_000  # 세로 만화처럼 아주 큰 이미지도 열기 (기본값이면 경고)
+
+
 def to_webp_parts(data: bytes, max_side: int = MAX_SIDE) -> list[bytes]:
     """너비 기준으로 줄여 webp로. 세로로 아주 긴 이미지는 잘게 나눠 여러 장으로 (작게 찌그러지지 않게)."""
     from PIL import Image, ImageOps
+    _allow_big_images()
 
     try:
         im = Image.open(io.BytesIO(data))
@@ -59,9 +65,24 @@ def to_webp_parts(data: bytes, max_side: int = MAX_SIDE) -> list[bytes]:
 
 
 def to_webp(data: bytes, max_side: int = MAX_SIDE) -> bytes | None:
-    """한 장으로 (AI에게 보낼 때 등). 긴 이미지는 윗부분만."""
-    parts = to_webp_parts(data, max_side)
-    return parts[0] if parts else None
+    """한 장으로 (AI에게 보낼 때). 가로·세로 모두 max_side 안으로 — AI는 여러 장을 보낼 때 한 변 3000px를 넘으면 거절함.
+    세로로 아주 긴 이미지는 윗부분(가로의 2배 높이)만."""
+    from PIL import Image, ImageOps
+
+    try:
+        im = Image.open(io.BytesIO(data))
+        im.seek(0)
+        im = ImageOps.exif_transpose(im.convert("RGB"))
+    except Exception:
+        return None
+    if min(im.size) < 40:
+        return None
+    if im.height > im.width * 2:
+        im = im.crop((0, 0, im.width, im.width * 2))
+    im.thumbnail((max_side, max_side))
+    out = io.BytesIO()
+    im.save(out, "WEBP", quality=80, method=4)
+    return out.getvalue()
 
 
 def download_images(srcs: list[str], page_url: str, day: str, client: httpx.Client | None = None) -> list[dict]:
