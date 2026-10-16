@@ -36,3 +36,21 @@ def test_enrich_attaches_news_only_when_ai_says_related(monkeypatch):
     context.enrich(posts, [], [], cfg, use_ai=True, search=lambda t: news[t])
     assert posts[0]["news_ctx"]["summary"].startswith("에버랜드") and posts[0]["news_ctx"]["articles"][0]["url"] == "n1"
     assert "news_ctx" not in posts[1]   # 낱말만 겹친 엉뚱한 기사는 붙이지 않음
+
+
+def test_naver_news_search_cleans_tags_and_needs_keys(monkeypatch):
+    monkeypatch.delenv("NAVER_CLIENT_ID", raising=False)
+    assert context.search_news("에버랜드 카피바라 세쌍둥이 공개") == []
+    monkeypatch.setenv("NAVER_CLIENT_ID", "id")
+    monkeypatch.setenv("NAVER_CLIENT_SECRET", "sec")
+    seen = {}
+    class R:
+        def raise_for_status(self): pass
+        def json(self): return {"items": [{"title": "<b>에버랜드</b> 카피바라 &quot;세쌍둥이&quot;", "originallink": "https://n/1",
+                                           "description": "첫 <b>공개</b>"}]}
+    def get(url, params, headers, timeout):
+        seen.update(url=url, q=params["query"], h=headers)
+        return R()
+    out = context.search_news("에버랜드 카피바라 세쌍둥이 공개", get=get)
+    assert out == [{"title": '에버랜드 카피바라 "세쌍둥이"', "url": "https://n/1", "source": "", "desc": "첫 공개"}]
+    assert seen["url"].startswith("https://openapi.naver.com/v1/search/news") and seen["h"]["X-Naver-Client-Id"] == "id"

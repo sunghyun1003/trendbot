@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import os
-from urllib.parse import quote
 
 from trendbot.pipeline import cluster as cl
 
@@ -52,19 +51,28 @@ def local_news(title: str, signals: list[dict]) -> list[dict]:
     return out[:NEWS_PER_ITEM]
 
 
-def search_news(title: str, fetch=None) -> list[dict]:
-    """구글 뉴스 검색(RSS). robots.txt가 허용할 때만 (polite_get이 확인). 실패하면 빈 목록."""
-    from trendbot.collectors.http import polite_get
-    from trendbot.collectors.signals import parse_google_news
+def search_news(title: str, get=None) -> list[dict]:
+    """네이버 검색 API(뉴스, 공식 API·무료). 키(NAVER_CLIENT_ID·SECRET)가 없으면 빈 목록.
+    구글 뉴스 검색은 robots.txt가 금지해서 쓰지 않음."""
+    cid, secret = os.environ.get("NAVER_CLIENT_ID"), os.environ.get("NAVER_CLIENT_SECRET")
     kw = _keywords(title)
-    if len(kw) < 2:
+    if not (cid and secret) or len(kw) < 2:
         return []
-    url = f"https://news.google.com/rss/search?q={quote(' '.join(kw))}&hl=ko&gl=KR&ceid=KR:ko"
+    import html
+    import re
+
+    import httpx
     try:
-        xml = (fetch or polite_get)(url)
+        r = (get or httpx.get)("https://openapi.naver.com/v1/search/news.json",
+                               params={"query": " ".join(kw), "display": NEWS_PER_ITEM, "sort": "sim"},
+                               headers={"X-Naver-Client-Id": cid, "X-Naver-Client-Secret": secret}, timeout=10)
+        r.raise_for_status()
+        items = r.json().get("items", [])
     except Exception:
         return []
-    return [{"title": s.title, "url": s.url, "source": s.extra.get("press", "")} for s in parse_google_news(xml)][:NEWS_PER_ITEM]
+    clean = lambda t: html.unescape(re.sub(r"<[^>]+>", "", t or "")).strip()
+    return [{"title": clean(i.get("title")), "url": i.get("originallink") or i.get("link") or "",
+             "source": "", "desc": clean(i.get("description"))} for i in items][:NEWS_PER_ITEM]
 
 
 def needs_context(post: dict) -> bool:
@@ -122,7 +130,8 @@ def summarize(items: list[tuple[str, list[dict]]]) -> dict[int, dict]:
     import anthropic
 
     from trendbot.pipeline.editor import MODEL
-    payload = [{"i": i, "post_title": t, "news": [n["title"] for n in news]} for i, (t, news) in enumerate(items)]
+    payload = [{"i": i, "post_title": t, "news": [(n["title"] + (" — " + n["desc"][:120] if n.get("desc") else "")) for n in news]}
+               for i, (t, news) in enumerate(items)]
     try:
         resp = anthropic.Anthropic(max_retries=2).messages.create(
             model=MODEL, max_tokens=4000, system=PROMPT,

@@ -14,6 +14,8 @@ export const KEYS = [
   { name: "IG_USER_ID", label: "인스타 계정 번호 (선택)", required: false },
   { name: "GMAIL_ADDRESS", label: "아침 메일 보내는 Gmail (선택)", required: false },
   { name: "GMAIL_APP_PASSWORD", label: "Gmail 앱 비밀번호 (선택)", required: false },
+  { name: "NAVER_CLIENT_ID", label: "네이버 검색 API ID (선택)", required: false },
+  { name: "NAVER_CLIENT_SECRET", label: "네이버 검색 API Secret (선택)", required: false },
 ];
 
 async function gh(env, method, path, body) {
